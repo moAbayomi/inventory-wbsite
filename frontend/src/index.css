@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  /* Manrope for everything — body text, tables, form inputs — because this
+     app is mostly dense forms and data, and a display face there hurts
+     legibility. Fraunces is opt-in via `font-display`, for the brand mark
+     and page/section titles only, where a bit of editorial character (this
+     is a fabric/fashion retailer, not a generic dashboard) is worth it. */
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+}
+
+/* Used by BarcodeLabel to print just the label -- not the modal chrome,
+   nav, or anything else on the page underneath it. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-label,
+  .printable-label * {
+    visibility: visible;
+  }
+  .printable-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}
