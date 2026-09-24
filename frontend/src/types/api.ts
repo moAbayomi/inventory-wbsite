@@ -40,6 +40,7 @@ export interface User {
   name: string;
   email: string;
   role: "ADMIN" | "STAFF";
+  is_active: boolean;
 }
 
 export interface LowStockResponse {

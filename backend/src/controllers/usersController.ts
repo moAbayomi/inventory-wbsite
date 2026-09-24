@@ -28,6 +28,7 @@ export const listUsers = async (
 				name: users.name,
 				email: users.email,
 				role: users.role,
+				is_active: users.is_active,
 				timestamp: users.timestamp,
 			})
 			.from(users)
@@ -62,6 +63,7 @@ export const getUser = async (
 				name: users.name,
 				email: users.email,
 				role: users.role,
+				is_active: users.is_active,
 				timestamp: users.timestamp,
 			})
 			.from(users)
@@ -95,11 +97,17 @@ export const updateUser = async function (req: AuthenticatedRequest, res: Respon
   try {
     const { id } = req.params as unknown as IdParam;
 
-    const { name, role } = req.body as UpdateUserBody
+    // Reactivating (is_active: true) goes through this same PATCH endpoint
+    // rather than a separate route -- it's just another field update.
+    // Drizzle drops any key here that's `undefined` from the generated
+    // UPDATE, so sending just {role: "ADMIN"} (without name/is_active)
+    // doesn't null the other columns out.
+    const { name, role, is_active } = req.body as UpdateUserBody
 
     const [user] = await db.update(users).set({
-      name: name,
-      role: role
+      name,
+      role,
+      is_active,
     }).where(eq(users.id, id)).returning()
 
     if(!user) throw notFound("user not found")
@@ -118,6 +126,15 @@ export const updateUser = async function (req: AuthenticatedRequest, res: Respon
 }
 
 
+// Soft delete, same reasoning as categoriesController.deleteCategory: a
+// user who has ever made a sale, logged an inventory event, received a
+// payment, or sent an invite is referenced by rows that are ON DELETE
+// RESTRICT/NO ACTION on purpose -- a hard DELETE FROM users would fail on
+// basically any real staff account with a raw, unhelpful 500, which is
+// exactly what "I can't remove a user, nothing happens" turned out to be.
+// Deactivating instead matches what the confirmation dialog already
+// promises ("revoke their access, they won't be able to sign in") without
+// erasing who did what in the sales/activity history.
 export const deleteUser = async function (
   req: AuthenticatedRequest,
   res: Response,
@@ -127,24 +144,25 @@ export const deleteUser = async function (
     const { id } = req.params as { id: string };
 
     if (req.user?.sub === id) {
-      throw forbidden("You cannot delete your own account");
+      throw forbidden("You cannot deactivate your own account");
     }
 
-    const [deletedUser] = await db
-      .delete(users)
+    const [deactivatedUser] = await db
+      .update(users)
+      .set({ is_active: false })
       .where(eq(users.id, id))
       .returning();
 
-    if (!deletedUser) {
+    if (!deactivatedUser) {
       throw notFound("User not found");
     }
 
     return res.status(200).json({
-      message: "User deleted successfully",
-      userId: deletedUser.id,
+      message: "User deactivated successfully",
+      userId: deactivatedUser.id,
     });
   } catch (e) {
-    console.error("Failed to delete user:", e);
+    console.error("Failed to deactivate user:", e);
     next(e);
   }
 };

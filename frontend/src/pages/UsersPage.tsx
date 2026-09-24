@@ -1,6 +1,6 @@
 // UsersPage.tsx
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Ban } from "lucide-react";
+import { Plus, Pencil, Trash2, Ban, RotateCcw } from "lucide-react";
 import { SectionSpinner } from "../components/Spinner";
 import { useUsers } from "../hooks/useUser";
 import { Modal } from "../components/Modal";
@@ -92,8 +92,10 @@ export default function UsersPage() {
                 </td>
                 <td className="px-5 py-3">
                   <span className="flex items-center gap-1.5 text-xs text-[#1C1C1A]/60">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    Active
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${user.is_active ? "bg-green-500" : "bg-[#1C1C1A]/25"}`}
+                    />
+                    {user.is_active ? "Active" : "Inactive"}
                   </span>
                 </td>
                 <td className="px-5 py-3 relative ">
@@ -107,13 +109,29 @@ export default function UsersPage() {
                         >
                           <Pencil size={14} />
                         </button>
-                        <button
-                          onClick={() => setDeletingUser(user)}
-                          aria-label={`Remove ${user.name}`}
-                          className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-red-600"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {user.is_active ? (
+                          <button
+                            onClick={() => setDeletingUser(user)}
+                            aria-label={`Deactivate ${user.name}`}
+                            className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-red-600"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              updateUser.mutate({
+                                id: user.id,
+                                data: { is_active: true },
+                              })
+                            }
+                            disabled={updateUser.isPending}
+                            aria-label={`Reactivate ${user.name}`}
+                            className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-green-600 disabled:opacity-60"
+                          >
+                            <RotateCcw size={14} />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -145,9 +163,11 @@ export default function UsersPage() {
       )}
       {deletingUser && (
         <Modal onClose={() => setDeletingUser(null)}>
-          <h2 className="text-lg font-semibold">Remove {deletingUser.name}?</h2>
+          <h2 className="text-lg font-semibold">Deactivate {deletingUser.name}?</h2>
           <p className="mt-1 text-sm text-[#1C1C1A]/60">
-            This will revoke their access. They won't be able to sign in.
+            This revokes their access -- they won't be able to sign in. Their
+            past sales and activity history stay intact, and you can
+            reactivate them from this page any time.
           </p>
           <div className="mt-6 flex justify-end gap-2">
             <button
@@ -165,7 +185,7 @@ export default function UsersPage() {
               disabled={removeUser.isPending}
               className="rounded-md bg-red-600 px-4 py-2 text-sm text-white disabled:opacity-60"
             >
-              {removeUser.isPending ? "Removing…" : "Remove"}
+              {removeUser.isPending ? "Deactivating…" : "Deactivate"}
             </button>
           </div>
         </Modal>

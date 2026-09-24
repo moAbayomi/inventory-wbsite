@@ -56,6 +56,13 @@ export const users = pgTable("users", {
   password_hash: text("password_hash").notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   role: roleTypeEnum().notNull().default("STAFF"),
+  // Soft-delete flag, same pattern as categories.is_active/suppliers.is_active.
+  // A user with any sales/inventory/payment/invite history can't be hard
+  // deleted anyway -- those foreign keys are ON DELETE RESTRICT/NO ACTION
+  // on purpose, so a past sale still shows who made it after they leave.
+  // "Remove user" deactivates instead: login and token refresh both check
+  // this and reject a deactivated account, without erasing their history.
+  is_active: boolean("is_active").notNull().default(true),
   timestamp: timestamp("created_at").defaultNow().notNull(),
 });
 

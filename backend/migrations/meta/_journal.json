@@ -15,6 +15,13 @@
       "when": 1789905277648,
       "tag": "0001_loose_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790248281030,
+      "tag": "0002_amused_paper_doll",
+      "breakpoints": true
     }
   ]
 }

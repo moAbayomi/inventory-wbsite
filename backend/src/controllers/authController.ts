@@ -88,6 +88,14 @@ export const login = async (
     );
     if (!isValidatedPassword) throw badRequest("Enter Valid Password");
 
+    // A deactivated account ("Remove user" in the Users page -- see
+    // usersController.deleteUser) still has a valid password, so this has
+    // to be checked separately after the password check, not folded into
+    // the !user case above.
+    if (!user.is_active) {
+      throw unauthorized("This account has been deactivated");
+    }
+
     const accessToken = await generateAccessToken({
       sub: user.id,
       role: user.role,
@@ -221,6 +229,12 @@ export const refresh = async (
       .limit(1);
 
     if (!user) throw unauthorized();
+    // Catches the case where an admin deactivates someone mid-session: the
+    // short-lived access token they already have keeps working until it
+    // expires, but the next refresh -- which happens automatically, see
+    // frontend/src/api/axios.ts -- is where a deactivated account actually
+    // gets locked out.
+    if (!user.is_active) throw unauthorized("This account has been deactivated");
     const accessToken = await generateAccessToken({ sub: user.id, role: user.role });
 
     res.cookie("refreshToken", newPlain, {
