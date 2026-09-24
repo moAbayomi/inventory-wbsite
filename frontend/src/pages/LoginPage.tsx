@@ -56,7 +56,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@restaurant.com"
+              placeholder="you@email.com"
               required
               autoComplete="email"
               className="rounded-md border border-black/10 px-3 py-2 text-sm outline-none placeholder:text-[#1C1C1A]/35 focus:border-[#C9A24B]/60"

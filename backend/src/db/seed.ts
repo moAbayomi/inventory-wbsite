@@ -9,7 +9,7 @@ import {
   payments,
   type Item,
 } from "./schema.ts";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "../utils/utils.ts";
 
 // Realistic data for a fabric & ready-to-wear shop: fabric sold by the yard
@@ -18,17 +18,50 @@ import { hashPassword } from "../utils/utils.ts";
 // garment" together, e.g. SHIRT-ANK-RBF-M/L/XL). Every stock number below
 // is deliberately consistent with the CREATE/SALE/WASTE events inserted
 // alongside it, exactly like the real API would leave the data.
+// Wipes every row this seeder is about to recreate. Lets seedShop() be run
+// again from scratch against a database that already has data in it --
+// which is exactly what "reseed the live database with new admin details"
+// means -- instead of erroring on duplicate emails/skus or leaving old and
+// new rows mixed together. All tables are listed together in one TRUNCATE
+// so Postgres doesn't care what order they're in; CASCADE covers any
+// foreign-key reference between them regardless.
+async function wipeDatabase() {
+  console.log("🗑️  Wiping existing data...");
+  await db.execute(sql`
+    TRUNCATE TABLE
+      refresh_tokens,
+      invites,
+      inventory_events,
+      payments,
+      sales_items,
+      sales,
+      item_images,
+      items,
+      categories,
+      suppliers,
+      users
+    RESTART IDENTITY CASCADE
+  `);
+}
+
 async function seedShop() {
   console.log("🧵 Seeding Abby's Robe fabric & ready-to-wear dataset...");
 
-  const ownerPassword = "admin1234";
-  const staffPassword = "staff1234";
+  await wipeDatabase();
+
+  // Overridable via env so a reseed can set fresh admin details without
+  // editing this file every time, e.g.:
+  //   SEED_ADMIN_EMAIL=admin@abbysrobe.com SEED_ADMIN_PASSWORD=... npm run db:seed
+  const ownerEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@abbysrobe.com";
+  const ownerPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin1234";
+  const staffEmail = process.env.SEED_STAFF_EMAIL ?? "chidi@abbysrobe.com";
+  const staffPassword = process.env.SEED_STAFF_PASSWORD ?? "staff1234";
 
   const [owner] = await db
     .insert(users)
     .values({
       name: "Amaka Okafor",
-      email: "owner@sweevo.ng",
+      email: ownerEmail,
       password_hash: await hashPassword(ownerPassword),
       role: "ADMIN",
     })
@@ -38,7 +71,7 @@ async function seedShop() {
     .insert(users)
     .values({
       name: "Chidi Umeh",
-      email: "chidi@sweevo.ng",
+      email: staffEmail,
       password_hash: await hashPassword(staffPassword),
       role: "STAFF",
     })
@@ -46,8 +79,8 @@ async function seedShop() {
 
   if (!owner || !staff) throw new Error("failed to seed users");
   console.log(`👤 Seeded users: ${owner.name} (ADMIN), ${staff.name} (STAFF)`);
-  console.log(`   login: owner@sweevo.ng / ${ownerPassword}`);
-  console.log(`   login: chidi@sweevo.ng / ${staffPassword}`);
+  console.log(`   login: ${ownerEmail} / ${ownerPassword}`);
+  console.log(`   login: ${staffEmail} / ${staffPassword}`);
 
   const categoryRows = await db
     .insert(categories)
