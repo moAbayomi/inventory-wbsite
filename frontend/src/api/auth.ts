@@ -20,8 +20,18 @@ export const loginRequest = async (
   password: string,
 ): Promise<User> => {
   const res = await api.post("/auth/login", { email, password });
-  const { user, token } = res.data;
-  setAccessToken(token);
+  // The backend's login response shape is { accessToken, user } (see
+  // authController.ts) -- NOT { token, user }. This used to destructure
+  // `token`, which is always undefined for this endpoint (register returns
+  // `token`, login returns `accessToken` -- the two aren't consistent), so
+  // setAccessToken(undefined) ran on every login. The login itself still
+  // "succeeded" (200, user set), but no access token ever made it into
+  // memory, so every subsequent request went out with no Authorization
+  // header, 401'd, and even the automatic refresh-retry could only help if
+  // the refresh cookie itself was also working -- from the outside this
+  // looked like everything was broken right after a successful login.
+  const { user, accessToken } = res.data;
+  setAccessToken(accessToken);
   return user;
 };
 
