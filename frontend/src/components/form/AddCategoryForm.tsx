@@ -1,6 +1,6 @@
 import { Form } from "./Form";
 import { TextField } from "./TextField";
-import { categorySchema, type CategoryFormData } from "../../schemas/category";
+import { categorySchema } from "../../schemas/category";
 import { useCategory } from "../../hooks/useCategory";
 
 interface AddCategoryFormProps {
