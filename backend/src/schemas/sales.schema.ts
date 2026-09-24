@@ -31,6 +31,11 @@ export const listSalesQuerySchema = z.object({
   to: z.coerce.date().optional(),
   status: z.enum(["PAID", "PARTIAL", "UNPAID"]).optional(),
   user_id: z.uuid().optional(),
+  // Matches against customer_name OR customer_phone (ILIKE, so it's
+  // case-insensitive and works as a "contains" search) -- the sales history
+  // page's search box, for finding "that sale for the woman named Grace"
+  // without knowing the exact date.
+  q: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   page: z.coerce.number().int().min(1).default(1),
 });

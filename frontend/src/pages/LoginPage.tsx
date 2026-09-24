@@ -27,12 +27,14 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#FAFAF9] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#C9A24B]/15 text-sm font-semibold text-[#C9A24B]">
-            S
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="Abby's Robe"
+            className="h-14 w-14 rounded-full object-cover"
+          />
           <div className="text-center">
             <h1 className="font-display text-2xl font-medium tracking-tight text-[#1C1C1A]">
-              Sweevo
+              Abby's Robe
             </h1>
             <p className="text-sm text-[#1C1C1A]/50">Sign in to your account</p>
           </div>

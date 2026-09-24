@@ -66,7 +66,7 @@ export default function AcceptInvitePage() {
             Set up your account
           </h1>
           <p className="text-sm text-[#1C1C1A]/50">
-            You've been invited to Sweevo
+            You've been invited to Abby's Robe
           </p>
         </div>
 

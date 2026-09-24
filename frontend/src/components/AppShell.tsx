@@ -22,18 +22,19 @@ export default function AppShell() {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between px-6 py-5 md:justify-start">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#C9A24B]/15 text-sm font-semibold text-[#C9A24B]">
-              S
-            </div>
-            <span className="font-display text-base font-medium tracking-tight text-white">
-              Sweevo
-            </span>
-          </div>
+        {/* DashHeader (rendered inside <Dashboard /> just below) is
+            already the sidebar's logo/name block, for both the mobile
+            drawer and the always-visible desktop sidebar -- this row used
+            to duplicate that same logo + "Abby's Robe" here too, which is
+            harmless with a plain letter circle but reads as an obvious
+            mistake once it's a real photo logo rendered twice. Now this
+            row exists purely to host the mobile "close drawer" button,
+            and is hidden entirely on desktop where there's nothing else
+            in it. */}
+        <div className="flex items-center justify-end px-4 py-3 md:hidden">
           <button
             onClick={() => setMobileOpen(false)}
-            className="rounded-md p-1.5 text-white/60 transition-colors hover:bg-white/5 hover:text-white md:hidden"
+            className="rounded-md p-1.5 text-white/60 transition-colors hover:bg-white/5 hover:text-white"
             aria-label="Close menu"
           >
             <X size={18} />
@@ -62,7 +63,12 @@ export default function AppShell() {
           >
             <Menu size={20} />
           </button>
-          <span className="font-display text-sm font-medium tracking-tight">Sweevo</span>
+          <img
+            src="/logo.jpg"
+            alt="Abby's Robe"
+            className="h-6 w-6 shrink-0 rounded-full object-cover"
+          />
+          <span className="font-display text-sm font-medium tracking-tight">Abby's Robe</span>
         </header>
 
         <main className="flex-1 overflow-y-auto">

@@ -73,11 +73,28 @@ export const inviteUser = async function (
 
     const inviteLink = `${env.FRONTEND_URL}/accept-invite?token=${encodeURIComponent(inviteToken)}`;
 
+    // Absolute URL, not a relative "/logo.jpg" -- email clients render
+    // this in an inbox with no access to the app's own origin, so it has
+    // to be a fully-qualified link the client can fetch on its own.
+    // FRONTEND_URL already exists for the invite link itself; once that's
+    // set to the real production domain, the logo resolves there too with
+    // no further change.
+    const logoUrl = `${env.FRONTEND_URL}/logo.jpg`;
+
     //send email function right here. right now
     const html = `
-      <p>You've been invited to Sweevo.</p>
-      <p><a href="${inviteLink}">Accept your invite</a></p>
-      <p>This link expires in 7 days.</p>
+      <div style="font-family: Arial, Helvetica, sans-serif; max-width: 420px; margin: 0 auto; padding: 32px 24px; text-align: center; color: #1C1C1A;">
+        <img src="${logoUrl}" alt="Abby's Robe" width="64" height="64" style="border-radius: 9999px; object-fit: cover; margin-bottom: 12px;" />
+        <h1 style="font-size: 18px; margin: 0 0 4px;">Abby's Robe</h1>
+        <p style="font-size: 14px; color: #57534E; margin: 0 0 24px;">You've been invited to join the team.</p>
+        <a href="${inviteLink}" style="display: inline-block; background: #17171A; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+          Accept your invite
+        </a>
+        <p style="font-size: 12px; color: #78716C; margin-top: 24px;">
+          This link expires in 7 days. If the button doesn't work, copy this link:<br />
+          <a href="${inviteLink}" style="color: #57534E;">${inviteLink}</a>
+        </p>
+      </div>
     `;
     const emailSend = await sendEmail(
       email,

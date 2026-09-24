@@ -39,12 +39,27 @@ export interface ListSalesParams {
   from?: string;
   to?: string;
   status?: "PAID" | "PARTIAL" | "UNPAID";
+  // Matches the backend's `q` param -- searches customer_name/customer_phone.
+  q?: string;
 }
 
 export const listSales = async (
   params: ListSalesParams = {},
 ): Promise<SalesListResponse> => {
   const res = await api.get<SalesListResponse>("/sales", { params });
+  return res.data;
+};
+
+// Same filters as listSales, minus pagination -- the backend returns every
+// matching sale as one PDF instead of a page of JSON. responseType: "blob"
+// keeps axios from trying to parse the PDF bytes as JSON/text.
+export const exportSalesPdf = async (
+  params: Omit<ListSalesParams, "page" | "limit"> = {},
+): Promise<Blob> => {
+  const res = await api.get<Blob>("/sales/export/pdf", {
+    params,
+    responseType: "blob",
+  });
   return res.data;
 };
 

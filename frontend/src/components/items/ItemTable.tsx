@@ -17,10 +17,13 @@ import { useAuth } from "../../hooks/useAuth";
 interface ItemsTableProps {
   data: InventoryItem[];
   onEdit: (item: InventoryItem) => void;
-  onPrintLabel: (item: InventoryItem) => void;
+  // Both optional -- see the comment in columns.tsx. A page that doesn't
+  // pass one just doesn't get that action's button in the row.
+  onPrintLabel?: (item: InventoryItem) => void;
+  onDelete?: (item: InventoryItem) => void;
 }
 
-export function ItemsTable({ data, onEdit, onPrintLabel }: ItemsTableProps) {
+export function ItemsTable({ data, onEdit, onPrintLabel, onDelete }: ItemsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -30,8 +33,8 @@ export function ItemsTable({ data, onEdit, onPrintLabel }: ItemsTableProps) {
   // render — so react-table doesn't think it has a brand new set of
   // columns each time and throw away sorting/filter state.
   const columns = useMemo(
-    () => createItemColumns(onEdit, onPrintLabel, isAdmin),
-    [onEdit, onPrintLabel, isAdmin],
+    () => createItemColumns(onEdit, onPrintLabel, isAdmin, onDelete),
+    [onEdit, onPrintLabel, isAdmin, onDelete],
   );
 
   const table = useReactTable({

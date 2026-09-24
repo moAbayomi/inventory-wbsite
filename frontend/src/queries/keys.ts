@@ -54,3 +54,10 @@ export const inviteKeys = {
   all: ["invites"] as const,
   list: ["invites", "list"] as const,
 };
+
+export const eventKeys = {
+  // A function, not a fixed tuple, same reasoning as salesKeys.list -- the
+  // activity page's filters (type/date range/page) each need their own
+  // cache entry.
+  list: (params: object = {}) => ["events", "list", params] as const,
+};

@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Package, Tags, User, BadgeDollarSign } from "lucide-react";
+import { Package, Tags, User, BadgeDollarSign, History } from "lucide-react";
 import { navLinkClasses } from "./navLinkClasses";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -14,8 +14,11 @@ const links = [
   { label: "Sales", icon: BadgeDollarSign, to: "/sales/new" },
 ];
 
+// Admin-only, same as the route in App.tsx -- Activity spans every item and
+// every user's actions, not something a STAFF account should browse.
 const adminLinks = [
-  { label: "Users", icon: User }
+  { label: "Users", icon: User },
+  { label: "Activity", icon: History },
 ]
 
 export function Links() {

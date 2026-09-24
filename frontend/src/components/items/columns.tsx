@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Barcode } from "lucide-react";
+import { Pencil, Barcode, Trash2 } from "lucide-react";
 import type { InventoryItem } from "../../types/api";
 
 // A function instead of a plain array because the actions column needs to
@@ -7,14 +7,21 @@ import type { InventoryItem } from "../../types/api";
 // modal, with this row's item) — there's no other way to hand a table
 // cell an onClick without it.
 //
-// `isAdmin` only gates the edit button. Editing an item's price/details is
-// an admin-only action (backend-enforced via adminOnly on PATCH /items/:id)
-// — a STAFF account would just get a 403 if it clicked through. Printing a
-// barcode label isn't a write at all, so every role gets that one.
+// `isAdmin` gates the edit and delete buttons. Both are admin-only actions
+// (backend-enforced via adminOnly on PATCH/DELETE /items/:id) — a STAFF
+// account would just get a 403 if it clicked through. Printing a barcode
+// label isn't a write at all, so every role gets that one.
+//
+// onPrintLabel/onDelete are optional -- CategoryItemsPage originally called
+// this table without a print handler at all (a pre-existing gap, not
+// something this change caused), so both actions only render when the page
+// using this table actually wired one up, instead of assuming every caller
+// has all three.
 export function createItemColumns(
   onEdit: (item: InventoryItem) => void,
-  onPrintLabel: (item: InventoryItem) => void,
-  isAdmin: boolean,
+  onPrintLabel?: (item: InventoryItem) => void,
+  isAdmin?: boolean,
+  onDelete?: (item: InventoryItem) => void,
 ): ColumnDef<InventoryItem>[] {
   const columns: ColumnDef<InventoryItem>[] = [
     { accessorKey: "name", header: "Name" },
@@ -43,14 +50,16 @@ export function createItemColumns(
       header: "",
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <button
-            type="button"
-            aria-label={`Print barcode label for ${row.original.name}`}
-            onClick={() => onPrintLabel(row.original)}
-            className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-[#1C1C1A]"
-          >
-            <Barcode size={14} />
-          </button>
+          {onPrintLabel && (
+            <button
+              type="button"
+              aria-label={`Print barcode label for ${row.original.name}`}
+              onClick={() => onPrintLabel(row.original)}
+              className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-[#1C1C1A]"
+            >
+              <Barcode size={14} />
+            </button>
+          )}
           {isAdmin && (
             <button
               type="button"
@@ -59,6 +68,16 @@ export function createItemColumns(
               className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-[#1C1C1A]"
             >
               <Pencil size={14} />
+            </button>
+          )}
+          {isAdmin && onDelete && (
+            <button
+              type="button"
+              aria-label={`Delete ${row.original.name}`}
+              onClick={() => onDelete(row.original)}
+              className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-red-600"
+            >
+              <Trash2 size={14} />
             </button>
           )}
         </div>

@@ -17,7 +17,9 @@
     visibility: hidden;
   }
   .printable-label,
-  .printable-label * {
+  .printable-label *,
+  .printable-receipt,
+  .printable-receipt * {
     visibility: visible;
   }
   .printable-label {
@@ -25,4 +27,21 @@
     top: 0;
     left: 0;
   }
+  .printable-receipt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 72mm; /* fits inside an 80mm thermal roll with a small margin */
+    page: receipt;
+  }
+}
+
+/* Named page for the receipt -- sizes the print job itself to a small
+   thermal-printer slip (an 80mm roll) instead of a full A4/Letter sheet,
+   for shops printing receipts on a handheld/POS receipt printer. Chrome
+   supports named @page rules; browsers that don't just fall back to their
+   default page size, which doesn't break anything, just isn't as narrow. */
+@page receipt {
+  size: 80mm auto;
+  margin: 4mm;
 }

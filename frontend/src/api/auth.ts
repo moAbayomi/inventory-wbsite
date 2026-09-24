@@ -27,7 +27,12 @@ export const loginRequest = async (
 
 export const logoutRequest = async (): Promise<void> => {
   try {
-    await api.get("/auth/logout");
+    // The backend only registers this as POST (authRoutes.ts) -- a GET here
+    // never matched that route at all, it just 404'd silently. The local
+    // access token still got cleared below either way (that's a `finally`),
+    // which was hiding the failure: it *looked* like logout did something,
+    // but the server never revoked the refresh token or cleared its cookie.
+    await api.post("/auth/logout");
   } finally {
     clearAccessToken();
   }

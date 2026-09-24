@@ -5,7 +5,7 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Sweevo API",
+      title: "Abby's Robe API",
       version: "1.0.0",
       description: "Sales & inventory API for a fabric and ready-to-wear retailer",
     },

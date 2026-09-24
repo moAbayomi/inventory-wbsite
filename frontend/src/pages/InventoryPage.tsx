@@ -1,8 +1,9 @@
 // InventoryPage.tsx
 import { useState } from "react";
 import { Plus, Ban } from "lucide-react";
+import { toast } from "sonner";
 import { SectionSpinner } from "../components/Spinner";
-import { useItems } from "../hooks/useItems";
+import { useItems, useDeleteItem } from "../hooks/useItems";
 import { ItemsTable } from "../components/items/ItemTable";
 import { Modal } from "../components/Modal";
 import { ItemForm } from "../components/form/ItemForm";
@@ -12,8 +13,10 @@ import type { InventoryItem } from "../types/api";
 
 export default function InventoryPage() {
   const { data: items, isLoading, isError } = useItems();
+  const deleteItem = useDeleteItem();
   const [modalItem, setModalItem] = useState<InventoryItem | "new" | null>(null);
   const [labelItem, setLabelItem] = useState<InventoryItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null);
 
   if (isLoading) return <SectionSpinner />;
   if (isError) {
@@ -52,6 +55,7 @@ export default function InventoryPage() {
           data={items ?? []}
           onEdit={setModalItem}
           onPrintLabel={setLabelItem}
+          onDelete={setDeletingItem}
         />
       </div>
 
@@ -70,6 +74,44 @@ export default function InventoryPage() {
       {labelItem && (
         <Modal onClose={() => setLabelItem(null)} title="Barcode label">
           <BarcodeLabel item={labelItem} />
+        </Modal>
+      )}
+
+      {deletingItem && (
+        <Modal onClose={() => setDeletingItem(null)}>
+          <h2 className="text-lg font-semibold">Delete {deletingItem.name}?</h2>
+          <p className="mt-1 text-sm text-[#1C1C1A]/60">
+            This removes it from the catalogue entirely -- it won't be
+            findable by search or scan anymore. Its past sales and stock
+            history stay on record either way.
+          </p>
+          <div className="mt-6 flex justify-end gap-2">
+            <button
+              onClick={() => setDeletingItem(null)}
+              className="rounded-md border border-black/10 px-4 py-2 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                deleteItem.mutate(deletingItem.id, {
+                  onSuccess: () => {
+                    toast.success(`${deletingItem.name} deleted`);
+                    setDeletingItem(null);
+                  },
+                  onError: (error) => {
+                    toast.error(
+                      error.response?.data?.error ?? "Couldn't delete this item",
+                    );
+                  },
+                });
+              }}
+              disabled={deleteItem.isPending}
+              className="rounded-md bg-red-600 px-4 py-2 text-sm text-white disabled:opacity-60"
+            >
+              {deleteItem.isPending ? "Deleting…" : "Delete"}
+            </button>
+          </div>
         </Modal>
       )}
     </div>

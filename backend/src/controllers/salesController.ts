@@ -1,5 +1,8 @@
 import type { Response, NextFunction } from "express";
-import { gte, lte, and, desc, sql } from "drizzle-orm";
+import { gte, lte, and, desc, sql, ilike, or } from "drizzle-orm";
+import PDFDocument from "pdfkit";
+import { drawTable } from "../utils/pdfTable.ts";
+import { LOGO_PATH } from "../utils/logoPath.ts";
 import type { AuthenticatedRequest } from "../middleware/auth.ts";
 import type {
   SaleSchema,
@@ -138,7 +141,7 @@ export const getAllSales = async (
   next: NextFunction,
 ) => {
   try {
-    const { from, to, status, user_id, limit, page } =
+    const { from, to, status, user_id, q, limit, page } =
       req.query as unknown as ListSalesQuerySchema;
     const filters = [];
 
@@ -146,6 +149,14 @@ export const getAllSales = async (
     if (to) filters.push(lte(sales.created_at, new Date(to)));
     if (status) filters.push(eq(sales.payment_status, status));
     if (user_id) filters.push(eq(sales.user_id, user_id));
+    if (q) {
+      filters.push(
+        or(
+          ilike(sales.customer_name, `%${q}%`),
+          ilike(sales.customer_phone, `%${q}%`),
+        ),
+      );
+    }
 
     const whereClause = filters.length > 0 ? and(...filters) : undefined;
 
@@ -170,6 +181,129 @@ export const getAllSales = async (
       page,
       limit,
     });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const exportSalesPdf = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { from, to, status, user_id, q } =
+      req.query as unknown as ListSalesQuerySchema;
+    const filters = [];
+
+    if (from) filters.push(gte(sales.created_at, new Date(from)));
+    if (to) filters.push(lte(sales.created_at, new Date(to)));
+    if (status) filters.push(eq(sales.payment_status, status));
+    if (user_id) filters.push(eq(sales.user_id, user_id));
+    if (q) {
+      filters.push(
+        or(
+          ilike(sales.customer_name, `%${q}%`),
+          ilike(sales.customer_phone, `%${q}%`),
+        ),
+      );
+    }
+
+    const whereClause = filters.length > 0 ? and(...filters) : undefined;
+
+    // No .limit()/.offset() -- unlike getAllSales, a report export means
+    // "every sale that matches these filters", not one page of them.
+    const saleRows = await db
+      .select()
+      .from(sales)
+      .where(whereClause)
+      .orderBy(desc(sales.created_at));
+
+    const totalAmount = saleRows.reduce(
+      (sum, s) => sum.plus(s.total_amount),
+      new Decimal(0),
+    );
+
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    const filename = `sales-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    doc.pipe(res);
+
+    // Centered logo above the store name -- matches the receipt's header so
+    // every printed document (receipt, sales report, activity report)
+    // reads as the same brand. Swallow a missing/corrupt logo file rather
+    // than let the whole report fail to generate over a cosmetic asset.
+    const logoSize = 48;
+    try {
+      doc.image(LOGO_PATH, doc.page.width / 2 - logoSize / 2, doc.y, {
+        width: logoSize,
+        height: logoSize,
+      });
+      doc.y += logoSize + 8;
+    } catch {
+      // no-op -- proceed without the logo
+    }
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(18)
+      .fillColor("#1C1C1A")
+      .text("Abby's Robe", { align: "center" });
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .fillColor("#57534E")
+      .text("Sales history report", { align: "center" });
+    doc.moveDown(0.5);
+
+    const filterLines: string[] = [];
+    if (from) filterLines.push(`From ${new Date(from).toLocaleDateString()}`);
+    if (to) filterLines.push(`To ${new Date(to).toLocaleDateString()}`);
+    if (status) filterLines.push(`Status: ${status}`);
+    if (q) filterLines.push(`Search: "${q}"`);
+
+    doc
+      .fontSize(9)
+      .fillColor("#78716C")
+      .text(
+        `Generated ${new Date().toLocaleString()}` +
+          (filterLines.length ? ` · ${filterLines.join(" · ")}` : ""),
+      );
+    doc.moveDown(0.3);
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .fillColor("#1C1C1A")
+      .text(
+        `${saleRows.length} sale${saleRows.length === 1 ? "" : "s"} · Total: NGN ${totalAmount.toFixed(2)}`,
+      );
+    doc.moveDown(0.8);
+
+    const columns = [
+      { header: "Date", width: 95 },
+      { header: "Customer", width: 125 },
+      { header: "Phone", width: 90 },
+      { header: "Payment", width: 70 },
+      { header: "Status", width: 60 },
+      { header: "Total (NGN)", width: 75, align: "right" as const },
+    ];
+
+    const rows = saleRows.map((s) => [
+      new Date(s.created_at).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      s.customer_name ?? "Walk-in",
+      s.customer_phone ?? "—",
+      s.payment_method,
+      s.payment_status,
+      Number(s.total_amount).toLocaleString(),
+    ]);
+
+    drawTable(doc, columns, rows, doc.y);
+
+    doc.end();
   } catch (e) {
     next(e);
   }

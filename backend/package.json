@@ -11,6 +11,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"db:seed": "node ./src/db/seed.ts",
+		"db:seed:admin": "node ./src/db/seedProduction.ts",
 		"test": "cross-env APP_STAGE=test vitest run",
 		"test-watch": "vitest",
 		"test-coverage": "vitest run --coverage"
@@ -22,6 +23,7 @@
 	"dependencies": {
 		"@asteasolutions/zod-to-openapi": "^9.1.0",
 		"@epic-web/remember": "^1.1.0",
+		"@types/pdfkit": "^0.17.6",
 		"bcrypt": "^6.0.0",
 		"cookie-parser": "^1.4.7",
 		"cors": "^2.8.6",
@@ -36,6 +38,7 @@
 		"jose": "^6.2.4",
 		"morgan": "^1.11.0",
 		"npm": "^11.19.1",
+		"pdfkit": "^0.20.2",
 		"pg": "^8.22.0",
 		"resend": "^6.28.1",
 		"swagger-jsdoc": "^6.3.0",

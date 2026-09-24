@@ -7,6 +7,7 @@ import { SectionSpinner } from "../components/Spinner";
 // but silently 404s on a case-sensitive Linux build/host -- worth catching
 // before deploying anywhere other than this machine.
 import { RevenueChart } from "../components/Dashboard/RevenueChart";
+import { LogStockUpdateForm } from "../components/form/LogStockUpdateForm";
 import type { SalesRange } from "../api/sales";
 import { AlertTriangle, Package, BadgeDollarSign, Plus, ArrowRight, Ban } from "lucide-react";
 
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   // One control drives both the "Sales" tile and the chart below it, so
   // they can't disagree about which window "Week" means.
   const [range, setRange] = useState<SalesRange>("today");
+  const [showStockModal, setShowStockModal] = useState(false);
   const { totals, lowStock, salesSummary, timeseries, isLoading, isError } =
     useDashboard(range);
 
@@ -68,11 +70,18 @@ export default function DashboardPage() {
             })}
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-md bg-[#17171A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#17171A]/85">
+        <button
+          onClick={() => setShowStockModal(true)}
+          className="flex items-center gap-2 rounded-md bg-[#17171A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#17171A]/85"
+        >
           <Plus size={16} />
           Log stock update
         </button>
       </div>
+
+      {showStockModal && (
+        <LogStockUpdateForm onClose={() => setShowStockModal(false)} />
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {stats.map(({ label, value, icon: Icon }) => (

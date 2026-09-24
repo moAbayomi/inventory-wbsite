@@ -19,7 +19,7 @@ import { hashPassword } from "../utils/utils.ts";
 // is deliberately consistent with the CREATE/SALE/WASTE events inserted
 // alongside it, exactly like the real API would leave the data.
 async function seedShop() {
-  console.log("🧵 Seeding Sweevo fabric & ready-to-wear dataset...");
+  console.log("🧵 Seeding Abby's Robe fabric & ready-to-wear dataset...");
 
   const ownerPassword = "admin1234";
   const staffPassword = "staff1234";
@@ -497,7 +497,7 @@ async function seedShop() {
   });
 
   console.log("🧾 Seeded 3 sample sales, their payments, and SALE events.");
-  console.log("✨ Sweevo database fully operational!");
+  console.log("✨ Abby's Robe database fully operational!");
   process.exit(0);
 }
 

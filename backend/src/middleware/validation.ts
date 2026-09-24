@@ -53,10 +53,29 @@ export const validateParams = (schema: ZodSchema) => {
 export const validateQuery = (schema: ZodSchema) => {
 	return (req: Request, res: Response, next: NextFunction) => {
 		try {
-			// req.query is a getter-backed object in Express 5 — reassigning it
-			// outright can throw, so merge the parsed (coerced/defaulted) values
-			// into the existing object instead of replacing it.
-			Object.assign(req.query, schema.parse(req.query));
+			// req.query is a GETTER in Express 5 -- every read re-parses req.url
+			// from scratch and hands back a brand new object. That means
+			// Object.assign(req.query, parsed) (the old approach here) mutated a
+			// throwaway object: the very next read of req.query (in the next
+			// middleware, or in the controller) called the getter again and got
+			// a *fresh* unparsed object, silently discarding every coercion and
+			// default the schema applied. Plain string fields (q, type, status)
+			// looked fine by coincidence (raw === parsed for a string), but
+			// numeric/date fields never actually became numbers/dates -- which
+			// meant `.limit(limit)` in a controller was called with the STRING
+			// "20" instead of the number 20, and Drizzle silently drops a
+			// non-number limit instead of adding a LIMIT clause, so pagination
+			// was returning every matching row uncapped instead of one page.
+			//
+			// Object.defineProperty replaces the getter with a plain, writable,
+			// own property holding the parsed result, so every later read of
+			// req.query in this request returns the exact same coerced object.
+			Object.defineProperty(req, "query", {
+				value: schema.parse(req.query),
+				writable: true,
+				configurable: true,
+				enumerable: true,
+			});
 			next();
 		} catch (error) {
 			if (error instanceof ZodError) {

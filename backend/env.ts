@@ -17,7 +17,15 @@ if (isDevelopment) {
 console.log("[env.ts] cwd:", process.cwd());
 console.log("[env.ts] NODE_ENV:", process.env.NODE_ENV);
 console.log("[env.ts] APP_STAGE:", process.env.APP_STAGE);
-console.log("[env.ts] DATABASE_URL after loadenv:", process.env.DATABASE_URL);
+// Was logging the *entire* DATABASE_URL, password included, to stdout on
+// every single boot -- anywhere that log line ends up (a terminal's
+// scrollback, a log file, a CI run) then has your live Neon password sitting
+// in plain text. Logging that it loaded, without the secret itself, is
+// enough to confirm the env var came through.
+console.log(
+  "[env.ts] DATABASE_URL after loadenv:",
+  process.env.DATABASE_URL ? "(set)" : "(missing)",
+);
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])

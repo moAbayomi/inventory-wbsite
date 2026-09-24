@@ -1,5 +1,5 @@
 // Shared response shapes, mirrored from the backend's actual JSON —
-// see the "Sweevo Backend Reference" doc for the source of truth on each
+// see the "Abby's Robe Backend Reference" doc for the source of truth on each
 // of these. Numeric-looking fields (current_stock, cost_price, ...) are
 // typed as `string`, not `number`, on purpose: Postgres numeric columns
 // serialize as strings over JSON via Drizzle, so that's what actually
@@ -143,4 +143,38 @@ export interface SalesTimeseries {
   range: { from: string; to: string };
   bucket: "hour" | "day";
   points: SalesTimeseriesPoint[];
+}
+
+export type EventType =
+  | "CREATE"
+  | "RESTOCK"
+  | "ADJUSTMENT"
+  | "SALE"
+  | "DELETE"
+  | "WASTE"
+  | "AUDIT";
+
+// One row of the system-wide activity/events feed -- GET /api/v1/events.
+// Every stock movement in the app (a sale, a manual adjust, a physical
+// audit, an item being created or deleted) writes one of these; this is
+// the read side of that same inventory_events table, not a separate log.
+export interface InventoryEventListItem {
+  id: string;
+  type: EventType;
+  quantity: string;
+  prev_stock: string;
+  new_stock: string;
+  note: string | null;
+  created_at: string;
+  item_id: string;
+  item_name: string | null;
+  item_sku: string | null;
+  user_name: string | null;
+}
+
+export interface EventsListResponse {
+  events: InventoryEventListItem[];
+  count: number;
+  page: number;
+  limit: number;
 }

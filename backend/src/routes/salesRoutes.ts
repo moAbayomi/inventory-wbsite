@@ -14,6 +14,7 @@ import {
   getSalesDetails,
   getSalesSummary,
   getSalesTimeseries,
+  exportSalesPdf,
 } from "../controllers/salesController.ts";
 
 const router = Router();
@@ -25,6 +26,11 @@ router.get("/", authenticateToken, validateQuery(listSalesQuerySchema), getAllSa
 // parse "summary"/"timeseries" as a sale id and 400 on the uuid check.
 router.get("/summary", authenticateToken, validateQuery(salesSummaryQuerySchema), getSalesSummary);
 router.get("/timeseries", authenticateToken, validateQuery(salesTimeseriesQuerySchema), getSalesTimeseries);
+
+// Same filters as "/", but returns the whole matching set as a PDF instead
+// of one paginated page of JSON -- must come before "/:id" for the same
+// reason summary/timeseries do.
+router.get("/export/pdf", authenticateToken, validateQuery(listSalesQuerySchema), exportSalesPdf);
 
 router.get("/:id", authenticateToken, validateParams(saleIdSchema), getSalesDetails);
 
