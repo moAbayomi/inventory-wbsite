@@ -59,6 +59,40 @@ describe("Sales endpoints", () => {
       expect(detailRes.body.payments[0].status).toBe("CONFIRMED");
     });
 
+    it("should store a blank customer name/phone as null, not an empty string", async () => {
+      const item = await createTestItem({ current_stock: "10.00" } as any);
+
+      const response = await request(app)
+        .post("/api/v1/sales")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          items: [{ item_id: item.id, quantity: 1 }],
+          customer_name: "   ",
+          customer_phone: "",
+          payment: { method: "CASH" },
+        })
+        .expect(201);
+
+      expect(response.body.sale.customer_name).toBeNull();
+      expect(response.body.sale.customer_phone).toBeNull();
+    });
+
+    it("should trim the customer name before saving it", async () => {
+      const item = await createTestItem({ current_stock: "10.00" } as any);
+
+      const response = await request(app)
+        .post("/api/v1/sales")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          items: [{ item_id: item.id, quantity: 1 }],
+          customer_name: "  Grace  ",
+          payment: { method: "CASH" },
+        })
+        .expect(201);
+
+      expect(response.body.sale.customer_name).toBe("Grace");
+    });
+
     it("should sell across multiple items in one sale", async () => {
       const itemA = await createTestItem({ current_stock: "10.00", selling_price: "100.00", cost_price: "50.00" } as any);
       const itemB = await createTestItem({ current_stock: "10.00", selling_price: "200.00", cost_price: "120.00" } as any);
