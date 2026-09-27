@@ -10,13 +10,19 @@ import type {
   ItemSchema,
   UpdateItem,
   AdjustStockInput,
+  ImageUploadUrlInput,
 } from "../schemas/item.schema.ts";
+import {
+  createImageUploadUrl,
+  isStorageConfigured,
+} from "../services/storage.ts";
 import { buildSkuBase } from "../utils/sku.ts";
 import {
   internal,
   notFound,
   unauthorized,
   badRequest,
+  serviceUnavailable,
 } from "../utils/httpError.ts";
 
 export const listItems = async function (
@@ -146,6 +152,24 @@ export const newItem = async function (
       message: "Item created successfully",
       item: insertedItem,
     });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const imageUploadUrl = async function (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    if (!isStorageConfigured())
+      throw serviceUnavailable("image uploads are not set up yet");
+
+    const { content_type } = req.body as ImageUploadUrlInput;
+    const { upload_url, public_url } = await createImageUploadUrl(content_type);
+
+    res.status(201).json({ upload_url, public_url });
   } catch (e) {
     next(e);
   }

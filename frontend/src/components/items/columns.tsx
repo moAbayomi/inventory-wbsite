@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Barcode, Trash2 } from "lucide-react";
 import type { InventoryItem } from "../../types/api";
+import { ItemThumbnail } from "./ItemThumbnail";
 
 // A function instead of a plain array because the actions column needs to
 // call back into the page (open the edit modal, or the barcode-label
@@ -24,7 +25,16 @@ export function createItemColumns(
   onDelete?: (item: InventoryItem) => void,
 ): ColumnDef<InventoryItem>[] {
   const columns: ColumnDef<InventoryItem>[] = [
-    { accessorKey: "name", header: "Name" },
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <ItemThumbnail url={row.original.image_url} alt={row.original.name} />
+          <span>{row.original.name}</span>
+        </div>
+      ),
+    },
     { accessorKey: "sku", header: "SKU" },
     {
       accessorKey: "current_stock",

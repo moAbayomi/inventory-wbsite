@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { KeyboardEvent } from "react";
+import type { ReactNode } from "react";
 import { ScanLine } from "lucide-react";
 
 interface SearchSelectProps<T> {
@@ -8,6 +9,9 @@ interface SearchSelectProps<T> {
   getKey: (item: T) => string;
   getLabel: (item: T) => string;
   getDetail?: (item: T) => string;
+  // Optional leading visual for each result, e.g. the item's photo, so a
+  // cashier can tell two similarly named fabrics apart at a glance.
+  renderLeading?: (item: T) => ReactNode;
   // What typing matches against — defaults to getLabel (name only). Pass
   // something wider (e.g. `${item.name} ${item.sku}`) so a USB/Bluetooth
   // barcode scanner "just works": it types the SKU into whatever input has
@@ -37,6 +41,7 @@ export function SearchSelect<T>({
   getKey,
   getLabel,
   getDetail,
+  renderLeading,
   getSearchValue,
   getExactMatchValue,
   placeholder = "Search…",
@@ -122,7 +127,10 @@ export function SearchSelect<T>({
                 onClick={() => handleSelect(item)}
                 className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-[#FAFAF9]"
               >
-                <span>{getLabel(item)}</span>
+                <span className="flex items-center gap-2.5">
+                  {renderLeading?.(item)}
+                  {getLabel(item)}
+                </span>
                 {getDetail && (
                   <span className="text-xs text-[#1C1C1A]/50">{getDetail(item)}</span>
                 )}
