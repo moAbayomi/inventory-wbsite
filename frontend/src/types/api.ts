@@ -120,7 +120,8 @@ export interface SalePayment {
 }
 
 export interface SaleDetail {
-  sale: Sale;
+  // sold_by_name: the staff member who recorded the sale, for the receipt.
+  sale: Sale & { sold_by_name: string | null };
   items: SaleLineItem[];
   payments: SalePayment[];
 }

@@ -19,6 +19,7 @@ import {
   salesItems,
   inventoryEvents,
   payments,
+  users,
 } from "../db/schema.ts";
 import { eq } from "drizzle-orm";
 import { Decimal } from "decimal.js";
@@ -324,12 +325,16 @@ export const getSalesDetails = async (
   try {
     const { id } = req.params as unknown as SaleIdSchema;
 
-    const [sale] = await db
-      .select()
+    // Left join so a sale still loads even in the (FK-prevented) case of a
+    // missing user. The cashier's name goes on the printed receipt.
+    const [row] = await db
+      .select({ sale: sales, sold_by_name: users.name })
       .from(sales)
+      .leftJoin(users, eq(sales.user_id, users.id))
       .where(eq(sales.id, id))
       .limit(1);
-    if (!sale) throw notFound("sale not found");
+    if (!row) throw notFound("sale not found");
+    const sale = { ...row.sale, sold_by_name: row.sold_by_name };
 
     const lineItems = await db
       .select({

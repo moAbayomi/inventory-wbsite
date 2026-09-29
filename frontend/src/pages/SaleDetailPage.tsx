@@ -85,6 +85,12 @@ export default function SaleDetailPage() {
               <span className="text-[#1C1C1A]">{sale.customer_phone}</span>
             </div>
           )}
+          {sale.sold_by_name && (
+            <div className="flex justify-between">
+              <span className="text-[#1C1C1A]/50">Served by</span>
+              <span className="text-[#1C1C1A]">{sale.sold_by_name}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-[#1C1C1A]/50">Status</span>
             <span className="text-[#1C1C1A]">{sale.payment_status}</span>

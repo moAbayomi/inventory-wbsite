@@ -54,6 +54,8 @@ describe("Sales endpoints", () => {
         .get(`/api/v1/sales/${response.body.sale.id}`)
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
+      // Who made the sale, for the receipt's "Served by" line.
+      expect(detailRes.body.sale.sold_by_name).toBe("Test User");
       expect(detailRes.body.payments).toHaveLength(1);
       expect(detailRes.body.payments[0].method).toBe("CASH");
       expect(detailRes.body.payments[0].status).toBe("CONFIRMED");

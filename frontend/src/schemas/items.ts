@@ -12,15 +12,21 @@ const baseItem = z.object({
   // escape hatch, picking "Uncategorized" would fail the .uuid() check.
   category_id: z.string().uuid().optional().or(z.literal("")),
   unit: z.string().default("yard"),
-  cost_price: z.coerce.number().min(0),
-  selling_price: z.coerce.number().min(0),
+  cost_price: z.coerce.number({ invalid_type_error: "Enter a price" }).min(0),
+  selling_price: z.coerce.number({ invalid_type_error: "Enter a price" }).min(0),
   description: z.string().optional(),
   image_url: z.string().url().optional().or(z.literal("")),
 
   // fabric only
   design: z.string().optional(),
   color: z.string().optional(),
-  width_inches: z.coerce.number().optional(),
+  // Same rule the backend enforces -- catching it here shows the message
+  // under the field instead of as a generic "Validation failed".
+  width_inches: z.coerce
+    .number()
+    .int("Whole inches only")
+    .positive("Must be more than 0")
+    .optional(),
   dye_lot: z.string().optional(),
 
   // ready-made only

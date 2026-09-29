@@ -27,7 +27,7 @@ export function createItemColumns(
   const columns: ColumnDef<InventoryItem>[] = [
     {
       accessorKey: "name",
-      header: "Name",
+      header: "Product name",
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <ItemThumbnail url={row.original.image_url} alt={row.original.name} />
