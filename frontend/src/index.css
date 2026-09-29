@@ -22,10 +22,12 @@
   .printable-receipt * {
     visibility: visible;
   }
-  .printable-label {
-    position: absolute;
-    top: 0;
-    left: 0;
+  /* Barcode labels: BarcodeLabel portals its sheet straight into <body>.
+     Take everything else out of the layout (display, not just visibility)
+     so the sheet starts at the top of page one and runs onto as many
+     pages as the labels need. */
+  body:has(> .printable-label) > :not(.printable-label) {
+    display: none;
   }
   .printable-receipt {
     position: absolute;

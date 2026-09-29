@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
+import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
@@ -80,6 +81,22 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
 
   const itemType = form.watch("item_type");
 
+  // A ready-made garment is sold by the piece, not the yard. Switching type
+  // moves the unit along with it -- but only off the other type's units,
+  // so a unit someone picked on purpose is left alone.
+  useEffect(() => {
+    const sub = form.watch((values, { name }) => {
+      if (name !== "item_type") return;
+      const unit = values.unit ?? "yard";
+      if (values.item_type === "READY_MADE" && (unit === "yard" || unit === "meter")) {
+        form.setValue("unit", "piece");
+      } else if (values.item_type === "FABRIC" && (unit === "piece" || unit === "set")) {
+        form.setValue("unit", "yard");
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [form]);
+
   const mutation = useMutation<InventoryItem, AxiosError<{ error?: string }>, ItemCreateData>({
     mutationFn: (data) => {
       // A native <select> can't send `undefined`, so "Uncategorized" comes
@@ -91,6 +108,21 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
         category_id: data.category_id || undefined,
         image_url: data.image_url || undefined,
       };
+
+      // Fields for the *other* type stay in the form's values when their
+      // inputs are hidden (e.g. a colour typed before switching to
+      // Ready-made). Don't save attributes you can no longer see.
+      if (!isEdit) {
+        if (data.item_type === "READY_MADE") {
+          delete payload.design;
+          delete payload.color;
+          delete payload.width_inches;
+          delete payload.dye_lot;
+        } else {
+          delete payload.size;
+          delete payload.style_code;
+        }
+      }
 
       if (isEdit) {
         // Day 2's own acceptance line for this task: "editing an existing
@@ -123,6 +155,9 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
           // ItemCreateData (output), not the looser ItemFormValues (input)
           // the form was typed with while you were still typing into it.
           mutation.mutate(data as ItemCreateData),
+          // Validation failed. Errors show under their fields, but say so
+          // up front too, so a failed save is never silent.
+          () => toast.error("Some fields need fixing before this can be saved"),
         )}
         className="flex flex-col gap-4"
       >

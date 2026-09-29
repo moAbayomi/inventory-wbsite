@@ -1,6 +1,7 @@
 import { useFormContext } from "react-hook-form";
 import type { InputHTMLAttributes } from "react";
 import { getFieldError } from "./getFieldError";
+import { emptyToUndefined } from "./NumberField";
 
 interface MoneyFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   name: string;
@@ -34,7 +35,7 @@ export function MoneyField({ name, label, currency = "₦", ...rest }: MoneyFiel
           step="0.01"
           min={0}
           inputMode="decimal"
-          {...register(name, { valueAsNumber: true })}
+          {...register(name, { setValueAs: emptyToUndefined })}
           {...rest}
           aria-invalid={!!error}
           className="w-full rounded-md border border-black/10 py-2 pr-3 pl-8 text-sm outline-none focus:border-[#C9A24B]/60"
