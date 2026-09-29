@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_IMAGE_BYTES } from "../services/storage.ts";
 
 // Shared fields for both fabric (sold by the yard/metre off a roll) and
 // ready-made garments (sold as a whole piece, described by size).
@@ -28,10 +29,11 @@ const itemCoreFields = {
   // "unset" state), and "" isn't a valid URL, so .optional() alone still
   // rejected it: .optional() only ever forgives an *absent* key, never a
   // present-but-empty one. Treating "" the same as "not sent" here is what
-  // was missing.
+  // was missing. null is accepted too and means "remove the photo" -- on an
+  // update, leaving the key out keeps whatever image the item already has.
   image_url: z.preprocess(
     (v) => (v === "" ? undefined : v),
-    z.string().url("image_url must be a valid URL").optional(),
+    z.string().url("image_url must be a valid URL").nullable().optional(),
   ),
   // Fabric-specific — leave unset for a READY_MADE item.
   design: z.string().optional(),
@@ -85,3 +87,19 @@ export const adjustStockInput = z.object({
 });
 
 export type AdjustStockInput = z.infer<typeof adjustStockInput>;
+
+// Asks for a signed URL to upload one item photo straight to storage.
+// The frontend shrinks photos before uploading, so the size cap is a
+// backstop against someone uploading a huge original, not a normal limit.
+export const imageUploadUrlSchema = z.object({
+  content_type: z.enum(["image/jpeg", "image/png", "image/webp"], {
+    error: "image must be a JPEG, PNG or WebP",
+  }),
+  size: z
+    .number()
+    .int()
+    .positive()
+    .max(MAX_IMAGE_BYTES, "image must be 5MB or smaller"),
+});
+
+export type ImageUploadUrlInput = z.infer<typeof imageUploadUrlSchema>;

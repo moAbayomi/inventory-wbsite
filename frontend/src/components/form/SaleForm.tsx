@@ -7,6 +7,7 @@ import { RefreshCw } from "lucide-react";
 import { SearchSelect } from "../ui/SearchSelect";
 import { TextField } from "./TextField";
 import { SelectField } from "./SelectField";
+import { ItemThumbnail } from "../items/ItemThumbnail";
 import { useItems } from "../../hooks/useItems";
 import { useCreateSale } from "../../hooks/useSales";
 import { newSaleSchema, paymentMethods, type NewSaleData } from "../../schemas/sales";
@@ -124,6 +125,7 @@ export function SaleForm() {
             getSearchValue={(i) => `${i.name} ${i.sku ?? ""}`}
             getExactMatchValue={(i) => i.sku}
             getDetail={(i) => `₦${Number(i.selling_price).toLocaleString()}`}
+            renderLeading={(i) => <ItemThumbnail url={i.image_url} alt="" size={28} />}
             placeholder="Search or scan an item…"
             autoFocus
           />
@@ -147,13 +149,16 @@ export function SaleForm() {
                 return (
                   <div key={field.id} className="flex flex-col gap-1 py-3">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-[#1C1C1A]">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-[#1C1C1A]/45">
-                          ₦{Number(item.selling_price).toLocaleString()} / {item.unit}
-                        </p>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <ItemThumbnail url={item.image_url} alt="" size={40} />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-[#1C1C1A]">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-[#1C1C1A]/45">
+                            ₦{Number(item.selling_price).toLocaleString()} / {item.unit}
+                          </p>
+                        </div>
                       </div>
                       <input
                         type="number"

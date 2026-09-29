@@ -15,9 +15,11 @@ export const createItem = async (
   return res.data.item;
 };
 
+// image_url: null (rather than leaving it out) is how an edit removes an
+// item's photo -- see backend/src/schemas/item.schema.ts.
 export const editItem = async (
   id: string,
-  data: ItemEditData,
+  data: Omit<ItemEditData, "image_url"> & { image_url?: string | null },
 ): Promise<InventoryItem> => {
   const res = await api.patch<{ item: InventoryItem }>(`/items/${id}`, data);
   return res.data.item;
@@ -41,4 +43,26 @@ export const adjustItemStock = async (
 // event history, even though the item row itself is gone.
 export const deleteItem = async (id: string): Promise<void> => {
   await api.delete(`/items/${id}`);
+};
+
+// Uploads a photo straight to the image bucket (Cloudflare R2), not through
+// our API: the backend hands out a short-lived signed URL, the file is PUT
+// there, and what comes back is the public URL to save as image_url. Plain
+// fetch for the PUT, not the `api` axios instance -- that one would attach
+// our bearer token and base URL to a request going to a different host.
+export const uploadItemImage = async (image: Blob): Promise<string> => {
+  const res = await api.post<{ upload_url: string; public_url: string }>(
+    "/items/images/upload-url",
+    { content_type: image.type, size: image.size },
+  );
+  const { upload_url, public_url } = res.data;
+
+  const put = await fetch(upload_url, {
+    method: "PUT",
+    headers: { "Content-Type": image.type },
+    body: image,
+  });
+  if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+
+  return public_url;
 };

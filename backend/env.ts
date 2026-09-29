@@ -47,6 +47,20 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z
     .string()
     .default("http://localhost:5173,http://localhost:3001"),
+  // Cloudflare R2 (S3-compatible) bucket for item photos. All optional so
+  // an existing deployment keeps booting without them -- until they're set,
+  // POST /items/images/upload-url answers 503 and everything else works as
+  // before. See services/storage.ts.
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET: z.string().optional(),
+  // Where uploaded files are publicly readable: the bucket's r2.dev URL or
+  // a custom domain, e.g. https://images.example.com (no trailing slash).
+  R2_PUBLIC_URL: z.string().url().optional(),
+  // Overrides the endpoint derived from R2_ACCOUNT_ID -- only needed to
+  // point at a different S3-compatible server (local testing).
+  R2_ENDPOINT: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +15,7 @@ import { TextField } from "./TextField";
 import { NumberField } from "./NumberField";
 import { MoneyField } from "./MoneyField";
 import { SelectField } from "./SelectField";
+import { ImageField } from "./ImageField";
 import type { InventoryItem } from "../../types/api";
 
 interface ItemFormProps {
@@ -25,6 +27,7 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
   const isEdit = !!item;
   const queryClient = useQueryClient();
   const { categories } = useCategory();
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Always resolve against the full (create) schema. Its extra two fields
   // (current_stock / low_stock_threshold) both have zod `.default()`s, so
@@ -82,9 +85,7 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
       // A native <select> can't send `undefined`, so "Uncategorized" comes
       // back as "" — turn that into `undefined` before it goes anywhere near
       // the API (the backend's own category_id is nullable/uuid, not "").
-      // Same deal for a blank "Image URL" field: the backend now tolerates
-      // "" too (see item.schema.ts), but there's no reason to rely on that
-      // from both sides when it's this cheap to just not send it.
+      // Same deal for no photo: "" means "none", so don't send it on create.
       const payload = {
         ...data,
         category_id: data.category_id || undefined,
@@ -96,7 +97,12 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
         // item never shows or sends a stock field." These two are only in
         // ItemCreateData for the create form's benefit — drop them here.
         const { current_stock, low_stock_threshold, ...editData } = payload;
-        return editItem(item!.id, editData);
+        // On an edit, a missing image_url means "leave the photo alone", so
+        // "Remove photo" has to send an explicit null to actually clear it.
+        return editItem(item!.id, {
+          ...editData,
+          image_url: data.image_url || null,
+        });
       }
       return createItem(payload);
     },
@@ -120,6 +126,12 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
         )}
         className="flex flex-col gap-4"
       >
+        <ImageField
+          name="image_url"
+          label="Photo"
+          onUploadingChange={setImageUploading}
+        />
+
         <SelectField
           name="item_type"
           label="Type"
@@ -177,7 +189,6 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
           <MoneyField name="selling_price" label="Selling price" />
         </div>
 
-        <TextField name="image_url" label="Image URL" />
         <TextField name="description" label="Description" />
 
         {!isEdit && (
@@ -195,7 +206,7 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
 
         <button
           type="submit"
-          disabled={mutation.isPending}
+          disabled={mutation.isPending || imageUploading}
           className="mt-1 rounded-md bg-[#17171A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#17171A]/85 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {mutation.isPending

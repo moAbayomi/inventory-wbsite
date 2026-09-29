@@ -8,6 +8,7 @@ import {
   deleteItem,
   updateItem,
   adjustItemStock,
+  imageUploadUrl,
 } from "../controllers/itemsController.ts";
 import { auditItem } from "../controllers/auditController.ts";
 import { validateBody, validateParams } from "../middleware/validation.ts";
@@ -17,6 +18,7 @@ import {
   newItemInputSchema,
   updateItemSchema,
   adjustStockInput,
+  imageUploadUrlSchema,
 } from "../schemas/item.schema.ts";
 import { auditItemSchema } from "../schemas/audit.schema.ts";
 
@@ -30,6 +32,15 @@ router.post("/", authenticateToken, validateBody(newItemInputSchema), newItem);
 // this ordering is just for readability. Exists for barcode/SKU-scan style
 // lookups from the frontend.
 router.get("/sku/:sku", authenticateToken, validateParams(itemSkuParamSchema), itemDetailBySku);
+
+// Hands back a short-lived signed URL the browser PUTs a photo to directly
+// (see services/storage.ts), plus the public URL to save as image_url.
+router.post(
+  "/images/upload-url",
+  authenticateToken,
+  validateBody(imageUploadUrlSchema),
+  imageUploadUrl,
+);
 
 router.get("/:id", authenticateToken, validateParams(itemIdParamSchema), itemDetail);
 router.patch(

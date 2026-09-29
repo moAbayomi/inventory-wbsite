@@ -40,6 +40,13 @@ export const newSale = async (
 
     if (!userId) throw unauthorized("user not authenticated!");
 
+    // A blank "Customer name" box on the sale form submits as "" (or just
+    // spaces), and `?? null` only catches a missing value -- so "" was
+    // being stored and the receipt printed an empty customer line instead
+    // of "Walk-in". Normalise blanks to null here, once.
+    const customerName = salesData.customer_name?.trim() || null;
+    const customerPhone = salesData.customer_phone?.trim() || null;
+
     const result = await db.transaction(async (tx) => {
       let totalAmount = new Decimal(0);
       let totalProfit = new Decimal(0);
@@ -79,8 +86,8 @@ export const newSale = async (
           user_id: userId,
           total_amount: totalAmount.toFixed(2),
           total_profit: totalProfit.toFixed(2),
-          customer_name: salesData.customer_name ?? null,
-          customer_phone: salesData.customer_phone ?? null,
+          customer_name: customerName,
+          customer_phone: customerPhone,
           payment_method: salesData.payment.method,
           payment_status: "PAID",
           note: salesData.note ?? null,
@@ -109,7 +116,7 @@ export const newSale = async (
           quantity: new Decimal(r.quantity).negated().toFixed(2),
           prev_stock: r.item.current_stock,
           new_stock: newStock.toFixed(2),
-          note: `Sold to ${salesData.customer_name ?? "walk-in"}`,
+          note: `Sold to ${customerName ?? "walk-in"}`,
         });
 
         await tx
@@ -294,8 +301,8 @@ export const exportSalesPdf = async (
         dateStyle: "medium",
         timeStyle: "short",
       }),
-      s.customer_name ?? "Walk-in",
-      s.customer_phone ?? "—",
+      s.customer_name || "Walk-in",
+      s.customer_phone || "—",
       s.payment_method,
       s.payment_status,
       Number(s.total_amount).toLocaleString(),

@@ -196,6 +196,30 @@ describe("Item endpoints", () => {
       expect(response.body.item.color).toBe(updatedCredentials.color)
     })
 
+    it("should remove the photo when image_url is sent as null, and keep it when image_url is left out", async () => {
+      const item = await createTestItem()
+
+      await request(app)
+        .patch(`/api/v1/items/${item.id}`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ image_url: "https://images.example.com/items/a.jpg" })
+        .expect(200)
+
+      const kept = await request(app)
+        .patch(`/api/v1/items/${item.id}`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ name: "Renamed" })
+        .expect(200)
+      expect(kept.body.item.image_url).toBe("https://images.example.com/items/a.jpg")
+
+      const removed = await request(app)
+        .patch(`/api/v1/items/${item.id}`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ image_url: null })
+        .expect(200)
+      expect(removed.body.item.image_url).toBeNull()
+    })
+
     it("should NOT change current_stock via a generic update, and should not log an event for it", async () => {
       const item = await createTestItem({ current_stock: "10.00" } as any)
 

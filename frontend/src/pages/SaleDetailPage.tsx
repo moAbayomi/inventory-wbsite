@@ -76,7 +76,7 @@ export default function SaleDetailPage() {
           <div className="flex justify-between">
             <span className="text-[#1C1C1A]/50">Customer</span>
             <span className="text-[#1C1C1A]">
-              {sale.customer_name ?? "Walk-in"}
+              {sale.customer_name || "Walk-in"}
             </span>
           </div>
           {sale.customer_phone && (

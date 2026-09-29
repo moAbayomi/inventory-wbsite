@@ -233,7 +233,7 @@ export default function SalesHistoryPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-[#1C1C1A]/80">
-                    {sale.customer_name ?? "Walk-in"}
+                    {sale.customer_name || "Walk-in"}
                   </td>
                   <td className="px-4 py-3 text-[#1C1C1A]/80">
                     {sale.payment_method}
