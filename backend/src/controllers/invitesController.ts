@@ -1,3 +1,4 @@
+import { emailMatches } from "../utils/email.ts";
 import type { Request, Response, NextFunction } from "express";
 import { invites, users } from "../db/schema.ts";
 import { db } from "../db/db.ts";
@@ -32,7 +33,7 @@ export const inviteUser = async function (
     const [existingUser] = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(emailMatches(users.email, email))
       .limit(1);
     if (existingUser) throw conflict("user with this email already exists");
 
@@ -41,7 +42,7 @@ export const inviteUser = async function (
       .from(invites)
       .where(
         and(
-          eq(invites.email, email),
+          emailMatches(invites.email, email),
           isNull(invites.accepted_at),
           gt(invites.expires_at, new Date()),
         ),
@@ -148,7 +149,7 @@ export const acceptInvite = async function (
       const [existingUser] = await tx
         .select()
         .from(users)
-        .where(eq(users.email, invite.email))
+        .where(emailMatches(users.email, invite.email))
         .limit(1);
 
       if (existingUser) throw new Error("EMAIL_ALREADY_REGISTERED");
@@ -159,7 +160,8 @@ export const acceptInvite = async function (
         .insert(users)
         .values({
           name: name,
-          email: invite.email,
+          // Invites made before emails were normalised may have capitals.
+          email: invite.email.toLowerCase(),
           password_hash: hashedPassword,
           role: invite.role,
         })

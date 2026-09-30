@@ -1,3 +1,4 @@
+import { emailMatches } from "../utils/email.ts";
 import type { NextFunction, Request, Response } from "express";
 import { db } from "../db/db.ts";
 import { users, type NewUser, refreshTokens } from "../db/schema.ts";
@@ -77,7 +78,7 @@ export const login = async (
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(emailMatches(users.email, email))
       .limit(1);
 
     if (!user) return res.status(401).json({ error: "invalid request" });

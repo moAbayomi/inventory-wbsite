@@ -26,6 +26,27 @@ describe("Authentication endpoints", () => {
       expect(response.body.user.email).toBe(credentials.email)
     })
 
+    it("should log in regardless of the email's capitalisation or surrounding spaces", async () => {
+      const testUser = await createTestUser()
+
+      const response = await request(app)
+        .post("/api/v1/auth/login")
+        .send({ email: `  ${testUser.user.email.toUpperCase()} `, password: testUser.password })
+
+      expect(response.status).toBe(200)
+    })
+
+    it("should still log in an account whose email was stored with capitals", async () => {
+      const email = `Mixed-${Date.now()}@Example.com`
+      const testUser = await createTestUser({ email })
+
+      const response = await request(app)
+        .post("/api/v1/auth/login")
+        .send({ email: email.toLowerCase(), password: testUser.password })
+
+      expect(response.status).toBe(200)
+    })
+
     it("should reject an invalid password", async () => {
       const testUser = await createTestUser()
 

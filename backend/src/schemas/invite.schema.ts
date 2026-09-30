@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { emailField } from "../utils/email.ts";
 
 export const createInviteSchema = z.object({
-  email: z.email("invalid email format"),
+  email: emailField("invalid email format"),
   role: z.enum(["ADMIN", "STAFF"]),
 });
 export type CreateInviteInput = z.infer<typeof createInviteSchema>;
