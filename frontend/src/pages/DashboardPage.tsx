@@ -8,6 +8,7 @@ import { SectionSpinner } from "../components/Spinner";
 // before deploying anywhere other than this machine.
 import { RevenueChart } from "../components/Dashboard/RevenueChart";
 import { LogStockUpdateForm } from "../components/form/LogStockUpdateForm";
+import { RoleGate } from "../components/RoleGate";
 import type { SalesRange } from "../api/sales";
 import { AlertTriangle, Package, BadgeDollarSign, Plus, ArrowRight, Ban } from "lucide-react";
 
@@ -70,13 +71,17 @@ export default function DashboardPage() {
             })}
           </p>
         </div>
-        <button
-          onClick={() => setShowStockModal(true)}
-          className="flex items-center gap-2 rounded-md bg-[#17171A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#17171A]/85"
-        >
-          <Plus size={16} />
-          Log stock update
-        </button>
+        {/* Admin only -- the backend rejects a staff account's stock
+            update anyway (adminOnly on /items/:id/adjust). */}
+        <RoleGate role="ADMIN">
+          <button
+            onClick={() => setShowStockModal(true)}
+            className="flex items-center gap-2 rounded-md bg-[#17171A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#17171A]/85"
+          >
+            <Plus size={16} />
+            Log stock update
+          </button>
+        </RoleGate>
       </div>
 
       {showStockModal && (

@@ -20,6 +20,10 @@ export function ImageField({ name, label, onUploadingChange }: ImageFieldProps) 
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which URL failed to display, rather than a boolean, so picking a new
+  // photo clears it without an extra effect.
+  const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
+  const previewBroken = !!url && brokenUrl === url;
 
   useEffect(() => {
     onUploadingChange?.(uploading);
@@ -54,8 +58,13 @@ export function ImageField({ name, label, onUploadingChange }: ImageFieldProps) 
 
       <div className="flex items-center gap-3">
         <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-black/10 bg-[#FAFAF9]">
-          {url ? (
-            <img src={url} alt="" className="h-full w-full object-cover" />
+          {url && !previewBroken ? (
+            <img
+              src={url}
+              alt=""
+              onError={() => setBrokenUrl(url)}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <ImagePlus size={20} className="text-[#1C1C1A]/25" />
           )}
@@ -97,6 +106,20 @@ export function ImageField({ name, label, onUploadingChange }: ImageFieldProps) 
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
+
+      {/* The upload itself worked (storage accepted the file), but the
+          public link it's saved under doesn't open -- almost always the
+          bucket's public access or the backend's R2_PUBLIC_URL. Say so,
+          rather than just showing an empty box. */}
+      {previewBroken && !error && (
+        <p role="alert" className="text-sm text-amber-700">
+          Photo uploaded, but it can't be displayed from{" "}
+          <a href={url} target="_blank" rel="noreferrer" className="underline">
+            its link
+          </a>
+          . Check the image bucket's public access settings.
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="text-sm text-red-600">

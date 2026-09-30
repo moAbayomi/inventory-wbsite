@@ -243,12 +243,29 @@ describe("Item endpoints", () => {
   })
 
   describe("POST /api/v1/items/:id/adjust", () => {
+    let adminToken: string
+
+    beforeAll(async () => {
+      const { token } = await createTestUser({ role: "ADMIN" as const })
+      adminToken = token
+    })
+
+    it("should forbid staff from logging a stock update", async () => {
+      const item = await createTestItem({ current_stock: "10.00" } as any)
+
+      await request(app)
+        .post(`/api/v1/items/${item.id}/adjust`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ quantity: 5, type: "RESTOCK" })
+        .expect(403)
+    })
+
     it("should restock an item and log a RESTOCK event", async () => {
       const item = await createTestItem({ current_stock: "10.00" } as any)
 
       const response = await request(app)
         .post(`/api/v1/items/${item.id}/adjust`)
-        .set("Authorization", `Bearer ${authToken}`)
+        .set("Authorization", `Bearer ${adminToken}`)
         .send({ quantity: 5, type: "RESTOCK", note: "delivery arrived" })
         .expect(200)
 
@@ -268,7 +285,7 @@ describe("Item endpoints", () => {
 
       const response = await request(app)
         .post(`/api/v1/items/${item.id}/adjust`)
-        .set("Authorization", `Bearer ${authToken}`)
+        .set("Authorization", `Bearer ${adminToken}`)
         .send({ quantity: 3, type: "WASTE", note: "damaged" })
         .expect(200)
 
@@ -286,7 +303,7 @@ describe("Item endpoints", () => {
 
       await request(app)
         .post(`/api/v1/items/${item.id}/adjust`)
-        .set("Authorization", `Bearer ${authToken}`)
+        .set("Authorization", `Bearer ${adminToken}`)
         .send({ quantity: 5, type: "WASTE" })
         .expect(400)
     })
