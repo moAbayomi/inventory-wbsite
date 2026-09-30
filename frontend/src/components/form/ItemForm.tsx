@@ -81,6 +81,31 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
 
   const itemType = form.watch("item_type");
 
+  // The item's category has to exist as an <option> for the dropdown to
+  // show it. The categories list loads separately (and can be slower than
+  // the form opening, especially on mobile data); until it arrives, or if
+  // the category has since been deleted (the list only has active ones),
+  // the browser would fall back to showing "Uncategorized" even though the
+  // item still has its category. Keep a placeholder option for it instead.
+  const savedCategoryId = item?.category_id ?? "";
+  const categoryOptions = [
+    { value: "", label: "Uncategorized" },
+    ...(categories ?? []).map((c) => ({ value: c.id, label: c.name })),
+  ];
+  if (savedCategoryId && !categoryOptions.some((o) => o.value === savedCategoryId)) {
+    categoryOptions.push({
+      value: savedCategoryId,
+      label: categories ? "(deleted category)" : "Loading…",
+    });
+  }
+
+  // Once the real options render, point the <select> back at the value the
+  // form holds -- adding <option>s doesn't change which one is selected.
+  useEffect(() => {
+    if (!categories) return;
+    form.setValue("category_id", form.getValues("category_id"));
+  }, [categories, form]);
+
   // A ready-made garment is sold by the piece, not the yard. Switching type
   // moves the unit along with it -- but only off the other type's units,
   // so a unit someone picked on purpose is left alone.
@@ -186,10 +211,7 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
         <SelectField
           name="category_id"
           label="Category"
-          options={[
-            { value: "", label: "Uncategorized" },
-            ...(categories ?? []).map((c) => ({ value: c.id, label: c.name })),
-          ]}
+          options={categoryOptions}
         />
 
         <SelectField

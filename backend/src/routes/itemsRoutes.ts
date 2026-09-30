@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticateToken } from "../middleware/auth.ts";
+import { adminOnly } from "../middleware/adminOnly.ts";
 import {
   listItems,
   newItem,
@@ -58,6 +59,9 @@ router.delete("/:id", authenticateToken, validateParams(itemIdParamSchema), dele
 router.post(
   "/:id/adjust",
   authenticateToken,
+  // Admin only: staff record stock leaving through sales, but restocks,
+  // waste and corrections are the owner's call.
+  adminOnly,
   validateParams(itemIdParamSchema),
   validateBody(adjustStockInput),
   adjustItemStock,
