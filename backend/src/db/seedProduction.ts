@@ -1,7 +1,7 @@
+import { emailMatches } from "../utils/email.ts";
 import { db } from "./db.ts";
 import { users } from "./schema.ts";
 import { hashPassword } from "../utils/utils.ts";
-import { eq } from "drizzle-orm";
 
 // Production bootstrap -- creates exactly ONE admin account and nothing
 // else: no sample categories, items, or sales (that's what seed.ts is
@@ -16,7 +16,7 @@ import { eq } from "drizzle-orm";
 //   ADMIN_NAME="Abby" ADMIN_EMAIL="you@example.com" ADMIN_PASSWORD="a strong password" npm run db:seed:admin
 async function seedProductionAdmin() {
   const name = process.env.ADMIN_NAME;
-  const email = process.env.ADMIN_EMAIL;
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD;
 
   if (!name || !email || !password) {
@@ -36,7 +36,7 @@ async function seedProductionAdmin() {
   const [existing] = await db
     .select()
     .from(users)
-    .where(eq(users.email, email))
+    .where(emailMatches(users.email, email))
     .limit(1);
 
   if (existing) {

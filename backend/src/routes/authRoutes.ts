@@ -2,9 +2,10 @@ import { Router } from "express";
 import { validateBody } from "../middleware/validation.ts";
 import { login, refresh, logout } from "../controllers/authController.ts";
 import { z } from "zod";
+import { emailField } from "../utils/email.ts";
 
 const loginSchema = z.object({
-	email: z.email("invalid email"),
+	email: emailField("invalid email"),
 	password: z.string().min(4, "password is required"),
 });
 

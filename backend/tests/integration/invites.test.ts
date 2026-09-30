@@ -54,4 +54,29 @@ describe("Invites Endpoints", () => {
       expect(finalResponse.body).toHaveProperty("user")
     })
   })
+
+  describe("POST /api/v1/invites (email case)", () => {
+    it("should refuse to invite an existing user when the email differs only in case", async () => {
+      const { user } = await createTestUser()
+
+      const response = await request(app)
+        .post("/api/v1/invites")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ email: user.email.toUpperCase(), role: "STAFF" })
+        .expect(409)
+
+      expect(response.body.error).toBe("user with this email already exists")
+    })
+
+    it("should also match a user whose email was stored with capitals", async () => {
+      const email = `Stored-${Date.now()}@Example.com`
+      await createTestUser({ email })
+
+      await request(app)
+        .post("/api/v1/invites")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ email: email.toLowerCase(), role: "STAFF" })
+        .expect(409)
+    })
+  })
 })
