@@ -1,6 +1,7 @@
 // UsersPage.tsx
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Ban, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Trash2, Ban, UserX, UserCheck } from "lucide-react";
+import { toast } from "sonner";
 import { SectionSpinner } from "../components/Spinner";
 import { useUsers } from "../hooks/useUser";
 import { Modal } from "../components/Modal";
@@ -99,7 +100,9 @@ export default function UsersPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3 relative ">
-                  <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  {/* Always visible on phones (no hover there); revealed on hover
+                      from the sm breakpoint up. */}
+                  <div className="flex items-center justify-end gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                     {user.role !== "ADMIN" && (
                       <>
                         <button
@@ -109,29 +112,34 @@ export default function UsersPage() {
                         >
                           <Pencil size={14} />
                         </button>
-                        {user.is_active ? (
-                          <button
-                            onClick={() => setDeletingUser(user)}
-                            aria-label={`Deactivate ${user.name}`}
-                            className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-red-600"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              updateUser.mutate({
-                                id: user.id,
-                                data: { is_active: true },
-                              })
-                            }
-                            disabled={updateUser.isPending}
-                            aria-label={`Reactivate ${user.name}`}
-                            className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-green-600 disabled:opacity-60"
-                          >
-                            <RotateCcw size={14} />
-                          </button>
-                        )}
+                        {/* Deactivate/reactivate: a reversible pause. */}
+                        <button
+                          onClick={() =>
+                            updateUser.mutate(
+                              { id: user.id, data: { is_active: !user.is_active } },
+                              {
+                                onSuccess: () =>
+                                  toast.success(
+                                    `${user.name} ${user.is_active ? "deactivated" : "reactivated"}`,
+                                  ),
+                              },
+                            )
+                          }
+                          disabled={updateUser.isPending}
+                          aria-label={`${user.is_active ? "Deactivate" : "Reactivate"} ${user.name}`}
+                          title={user.is_active ? "Deactivate (can be undone)" : "Reactivate"}
+                          className={`rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 disabled:opacity-60 ${user.is_active ? "hover:text-amber-600" : "hover:text-green-600"}`}
+                        >
+                          {user.is_active ? <UserX size={14} /> : <UserCheck size={14} />}
+                        </button>
+                        <button
+                          onClick={() => setDeletingUser(user)}
+                          aria-label={`Delete ${user.name}`}
+                          title="Delete user"
+                          className="rounded-md p-1.5 text-[#1C1C1A]/45 hover:bg-black/5 hover:text-red-600"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </>
                     )}
                   </div>
@@ -163,11 +171,17 @@ export default function UsersPage() {
       )}
       {deletingUser && (
         <Modal onClose={() => setDeletingUser(null)}>
-          <h2 className="text-lg font-semibold">Deactivate {deletingUser.name}?</h2>
+          <h2 className="text-lg font-semibold">Delete {deletingUser.name}?</h2>
           <p className="mt-1 text-sm text-[#1C1C1A]/60">
-            This revokes their access -- they won't be able to sign in. Their
-            past sales and activity history stay intact, and you can
-            reactivate them from this page any time.
+            Their account is removed for good: they can't sign in and won't
+            appear on this page. Sales, receipts and activity they recorded
+            stay exactly as they are, still showing their name. This can't
+            be undone.
+          </p>
+          <p className="mt-2 text-sm text-[#1C1C1A]/60">
+            Only need to stop them signing in for now? Use{" "}
+            <span className="font-medium text-[#1C1C1A]">Deactivate</span>{" "}
+            instead -- that can be reversed.
           </p>
           <div className="mt-6 flex justify-end gap-2">
             <button
@@ -179,13 +193,16 @@ export default function UsersPage() {
             <button
               onClick={() => {
                 removeUser.mutate(deletingUser.id, {
-                  onSuccess: () => setDeletingUser(null),
+                  onSuccess: () => {
+                    toast.success(`${deletingUser.name} deleted`);
+                    setDeletingUser(null);
+                  },
                 });
               }}
               disabled={removeUser.isPending}
               className="rounded-md bg-red-600 px-4 py-2 text-sm text-white disabled:opacity-60"
             >
-              {removeUser.isPending ? "Deactivating…" : "Deactivate"}
+              {removeUser.isPending ? "Deleting…" : "Delete user"}
             </button>
           </div>
         </Modal>

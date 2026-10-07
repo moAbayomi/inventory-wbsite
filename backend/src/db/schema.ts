@@ -63,6 +63,13 @@ export const users = pgTable("users", {
   // "Remove user" deactivates instead: login and token refresh both check
   // this and reject a deactivated account, without erasing their history.
   is_active: boolean("is_active").notNull().default(true),
+  // Set when an admin deletes a user who has history (sales, stock
+  // movements, payments, invites). The row has to stay so those records
+  // still show who did what, but the account itself is gone: hidden from
+  // the users list, email and password wiped so it can never sign in and
+  // the address can be invited again. A user with no history is deleted
+  // outright instead -- see usersController.deleteUser.
+  deleted_at: timestamp("deleted_at"),
   timestamp: timestamp("created_at").defaultNow().notNull(),
 });
 

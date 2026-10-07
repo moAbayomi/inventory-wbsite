@@ -26,7 +26,9 @@ import { auditItemSchema } from "../schemas/audit.schema.ts";
 const router = Router();
 
 router.get("/", authenticateToken, listItems);
-router.post("/", authenticateToken, validateBody(newItemInputSchema), newItem);
+// Creating, editing, deleting and photo uploads are admin only -- the
+// frontend only shows those controls to admins, and this makes it binding.
+router.post("/", authenticateToken, adminOnly, validateBody(newItemInputSchema), newItem);
 
 // Kept ahead of "/:id" -- both are GETs but this one has two segments
 // ("sku", then the value) so it can never actually collide with "/:id",
@@ -39,6 +41,7 @@ router.get("/sku/:sku", authenticateToken, validateParams(itemSkuParamSchema), i
 router.post(
   "/images/upload-url",
   authenticateToken,
+  adminOnly,
   validateBody(imageUploadUrlSchema),
   imageUploadUrl,
 );
@@ -47,11 +50,12 @@ router.get("/:id", authenticateToken, validateParams(itemIdParamSchema), itemDet
 router.patch(
   "/:id",
   authenticateToken,
+  adminOnly,
   validateParams(itemIdParamSchema),
   validateBody(updateItemSchema),
   updateItem,
 );
-router.delete("/:id", authenticateToken, validateParams(itemIdParamSchema), deleteItem);
+router.delete("/:id", authenticateToken, adminOnly, validateParams(itemIdParamSchema), deleteItem);
 
 // Manual stock movements that aren't a sale -- a delivery came in
 // (RESTOCK), some fabric was damaged (WASTE), or a quick correction
@@ -73,6 +77,7 @@ router.post(
 router.post(
   "/:id/audit",
   authenticateToken,
+  adminOnly,
   validateParams(itemIdParamSchema),
   validateBody(auditItemSchema),
   auditItem,

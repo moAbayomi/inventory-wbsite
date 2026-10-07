@@ -174,6 +174,18 @@ export interface InventoryEventListItem {
   user_name: string | null;
 }
 
+// One stock movement on a single item's page -- GET /events/items/:id.
+export interface ItemEvent {
+  id: string;
+  type: EventType;
+  quantity: string;
+  prev_stock: string;
+  new_stock: string;
+  note: string | null;
+  created_at: string;
+  user: { id: string; name: string; email: string } | null;
+}
+
 export interface EventsListResponse {
   events: InventoryEventListItem[];
   count: number;

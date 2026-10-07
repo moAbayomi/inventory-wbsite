@@ -1,11 +1,22 @@
 import api from "./axios";
-import type { InventoryItem } from "../types/api";
+import type { InventoryItem, ItemEvent } from "../types/api";
 import type { ItemCreateData, ItemEditData } from "../schemas/items";
 
 export const getInventoryItems = async (): Promise<InventoryItem[]> => {
   const res = await api.get<{ items: InventoryItem[] }>("/items");
   const { items } = res.data;
   return items;
+};
+
+export const getItem = async (id: string): Promise<InventoryItem> => {
+  const res = await api.get<{ item: InventoryItem }>(`/items/${id}`);
+  return res.data.item;
+};
+
+// An item's stock history (sales, restocks, waste, ...), newest first.
+export const getItemEvents = async (id: string): Promise<ItemEvent[]> => {
+  const res = await api.get<{ events?: ItemEvent[] }>(`/events/items/${id}`);
+  return res.data.events ?? [];
 };
 
 export const createItem = async (

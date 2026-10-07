@@ -6,6 +6,7 @@ import { AdminRoute } from "./components/AdminRoute";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import InventoryPage from "./pages/InventoryPage";
+import ItemDetailPage from "./pages/ItemDetailPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import CategoryItemsPage from "./pages/CategoryItemsPage";
 import SalesPage from "./pages/SalesPage";
@@ -30,6 +31,7 @@ function App() {
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/inventory/:id" element={<ItemDetailPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/categories/:id" element={<CategoryItemsPage />} />
             <Route element={<AdminRoute />}>

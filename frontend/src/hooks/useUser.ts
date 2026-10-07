@@ -41,7 +41,7 @@ export function useUsers() {
     mutationFn: (id: string) => deleteUser(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: userKeys.all }),
     onError: (err: AxiosError<{ error?: string }>) => {
-      toast.error(err.response?.data?.error ?? "Couldn't deactivate this user");
+      toast.error(err.response?.data?.error ?? "Couldn't delete this user");
     },
   });
 

@@ -1,7 +1,14 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../db/db.ts";
-import { eq, desc, type InferSelectModel } from "drizzle-orm";
-import { users } from "../db/schema.ts";
+import { eq, desc, and, isNull, sql, type InferSelectModel } from "drizzle-orm";
+import {
+  users,
+  sales,
+  inventoryEvents,
+  payments,
+  invites,
+  refreshTokens,
+} from "../db/schema.ts";
 
 import type { ListQuery, IdParam, UpdateUserBody } from "../schemas/user.schema.ts";
 import type { AuthenticatedRequest } from "../middleware/auth.ts";
@@ -32,6 +39,7 @@ export const listUsers = async (
 				timestamp: users.timestamp,
 			})
 			.from(users)
+			.where(isNull(users.deleted_at))
 			.orderBy(desc(users.timestamp))
 			.limit(pageSize)
 			.offset(offset);
@@ -67,7 +75,7 @@ export const getUser = async (
 				timestamp: users.timestamp,
 			})
 			.from(users)
-			.where(eq(users.id, id))
+			.where(and(eq(users.id, id), isNull(users.deleted_at)))
 			.limit(1);
 
 		if (!user) throw notFound("user not found");
@@ -108,7 +116,7 @@ export const updateUser = async function (req: AuthenticatedRequest, res: Respon
       name,
       role,
       is_active,
-    }).where(eq(users.id, id)).returning()
+    }).where(and(eq(users.id, id), isNull(users.deleted_at))).returning()
 
     if(!user) throw notFound("user not found")
 
@@ -126,15 +134,20 @@ export const updateUser = async function (req: AuthenticatedRequest, res: Respon
 }
 
 
-// Soft delete, same reasoning as categoriesController.deleteCategory: a
-// user who has ever made a sale, logged an inventory event, received a
-// payment, or sent an invite is referenced by rows that are ON DELETE
-// RESTRICT/NO ACTION on purpose -- a hard DELETE FROM users would fail on
-// basically any real staff account with a raw, unhelpful 500, which is
-// exactly what "I can't remove a user, nothing happens" turned out to be.
-// Deactivating instead matches what the confirmation dialog already
-// promises ("revoke their access, they won't be able to sign in") without
-// erasing who did what in the sales/activity history.
+// Deleting a user, without losing history. A user who has ever made a
+// sale, logged a stock movement, received a payment or sent an invite is
+// referenced by those rows (ON DELETE RESTRICT/NO ACTION on purpose), and
+// the activity feed, sales history and receipts show their name. So:
+//
+// - No history: the row is deleted outright (their refresh tokens go with
+//   it via ON DELETE CASCADE, so any open session can't be renewed).
+// - Has history: the row stays so every past record still shows their
+//   name, but the account is erased -- deleted_at set, email and password
+//   replaced so it can never sign in and the address can be invited again,
+//   sessions revoked, and it disappears from the users list.
+//
+// Deactivating (PATCH is_active: false) is still there for a reversible
+// "pause this account".
 export const deleteUser = async function (
   req: AuthenticatedRequest,
   res: Response,
@@ -144,25 +157,57 @@ export const deleteUser = async function (
     const { id } = req.params as { id: string };
 
     if (req.user?.sub === id) {
-      throw forbidden("You cannot deactivate your own account");
+      throw forbidden("You cannot delete your own account");
     }
 
-    const [deactivatedUser] = await db
-      .update(users)
-      .set({ is_active: false })
-      .where(eq(users.id, id))
-      .returning();
+    const result = await db.transaction(async (tx) => {
+      const [user] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.id, id), isNull(users.deleted_at)))
+        .for("update")
+        .limit(1);
+      if (!user) throw notFound("User not found");
 
-    if (!deactivatedUser) {
-      throw notFound("User not found");
-    }
+      const { rows } = await tx.execute<{ has_history: boolean }>(sql`
+        select (
+          exists (select 1 from ${sales} where ${sales.user_id} = ${id})
+          or exists (select 1 from ${inventoryEvents} where ${inventoryEvents.user_id} = ${id})
+          or exists (select 1 from ${payments} where ${payments.received_by} = ${id})
+          or exists (select 1 from ${invites} where ${invites.invited_by} = ${id})
+        ) as has_history
+      `);
+      const hasHistory = rows[0]?.has_history === true;
+
+      if (!hasHistory) {
+        await tx.delete(users).where(eq(users.id, id));
+        return "deleted" as const;
+      }
+
+      await tx
+        .update(users)
+        .set({
+          deleted_at: new Date(),
+          is_active: false,
+          // Unique per user and on a reserved domain (.invalid can never
+          // receive mail), so it can't collide with or match a real address.
+          email: `deleted-${id}@deleted.invalid`,
+          // Not a bcrypt hash, so no password can ever match it.
+          password_hash: "!deleted",
+        })
+        .where(eq(users.id, id));
+      await tx.delete(refreshTokens).where(eq(refreshTokens.user_id, id));
+      return "archived" as const;
+    });
 
     return res.status(200).json({
-      message: "User deactivated successfully",
-      userId: deactivatedUser.id,
+      message: "User deleted successfully",
+      userId: id,
+      // "archived": kept (name only) because past records point at them.
+      result,
     });
   } catch (e) {
-    console.error("Failed to deactivate user:", e);
+    console.error("Failed to delete user:", e);
     next(e);
   }
 };
