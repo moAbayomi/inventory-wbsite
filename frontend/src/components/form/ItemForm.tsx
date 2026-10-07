@@ -164,7 +164,8 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
       return createItem(payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: itemKeys.list });
+      // itemKeys.all, not just .list -- also refreshes an open item page.
+      queryClient.invalidateQueries({ queryKey: itemKeys.all });
       onSuccess();
     },
   });
@@ -201,7 +202,7 @@ export function ItemForm({ item, onSuccess }: ItemFormProps) {
           ]}
         />
 
-        <TextField name="name" label="Name" />
+        <TextField name="name" label="Product name" />
         <TextField
           name="sku"
           label="SKU"

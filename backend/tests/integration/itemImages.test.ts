@@ -17,7 +17,7 @@ describe("POST /api/v1/items/images/upload-url", () => {
   const saved = {} as Record<(typeof R2_KEYS)[number], string | undefined>;
 
   beforeAll(async () => {
-    const { token } = await createTestUser();
+    const { token } = await createTestUser({ role: "ADMIN" as const });
     authToken = token;
     for (const k of R2_KEYS) saved[k] = env[k];
   });

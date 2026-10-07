@@ -1,4 +1,10 @@
-import { getInventoryItems, adjustItemStock, deleteItem } from "../api/items";
+import {
+  getInventoryItems,
+  getItem,
+  getItemEvents,
+  adjustItemStock,
+  deleteItem,
+} from "../api/items";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { itemKeys, inventoryKeys } from "../queries/keys";
@@ -13,6 +19,28 @@ export const useItems = () => {
     queryFn: getInventoryItems,
     enabled: !!user,
     staleTime: 60_000,
+  });
+};
+
+// One item, for its own page. No long staleTime: stock changes with every
+// sale, so the page should show the current count when it's opened.
+export const useItem = (id: string | undefined) => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: itemKeys.detail(id ?? ""),
+    queryFn: () => getItem(id!),
+    enabled: !!user && !!id,
+  });
+};
+
+export const useItemEvents = (id: string | undefined, enabled = true) => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: itemKeys.events(id ?? ""),
+    queryFn: () => getItemEvents(id!),
+    enabled: !!user && !!id && enabled,
   });
 };
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   useReactTable,
   getCoreRowModel,
@@ -28,6 +29,7 @@ export function ItemsTable({ data, onEdit, onPrintLabel, onDelete }: ItemsTableP
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   // Rebuilt only when these change (i.e. basically never) — not on every
   // render — so react-table doesn't think it has a brand new set of
@@ -108,9 +110,12 @@ export function ItemsTable({ data, onEdit, onPrintLabel, onDelete }: ItemsTableP
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
+                // Clicking anywhere on a row opens that item's own page; the
+                // action buttons in the last column stop the click first.
                 <tr
                   key={row.id}
-                  className="border-b border-black/5 last:border-0 hover:bg-[#FAFAF9]"
+                  onClick={() => navigate(`/inventory/${row.original.id}`)}
+                  className="cursor-pointer border-b border-black/5 last:border-0 hover:bg-[#FAFAF9]"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-4 py-3 text-[#1C1C1A]/80">

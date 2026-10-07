@@ -6,6 +6,7 @@ import { useEvents } from "../hooks/useEvents";
 import { exportEventsPdf } from "../api/events";
 import { downloadBlob } from "../utils/downloadBlob";
 import type { EventType } from "../types/api";
+import { typeBadgeClasses } from "../utils/eventStyles";
 
 const PAGE_SIZE = 25;
 
@@ -23,16 +24,6 @@ const eventTypeOptions: EventType[] = [
 // deduction, a manual restock, a physical count reconciliation, an item
 // being created or removed all write one of these rows. This page is the
 // one place that shows all of them together, across every item.
-const typeBadgeClasses: Record<EventType, string> = {
-  SALE: "bg-black/5 text-[#1C1C1A]/60",
-  RESTOCK: "bg-emerald-50 text-emerald-700",
-  WASTE: "bg-red-50 text-red-700",
-  ADJUSTMENT: "bg-amber-50 text-amber-700",
-  AUDIT: "bg-violet-50 text-violet-700",
-  CREATE: "bg-sky-50 text-sky-700",
-  DELETE: "bg-[#1C1C1A]/10 text-[#1C1C1A]/70",
-};
-
 interface Filters {
   type: "" | EventType;
   from: string;

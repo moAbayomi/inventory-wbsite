@@ -25,6 +25,10 @@ export const activityKeys = {
 export const itemKeys = {
   all: ["items"] as const,
   list: ["items", "list"] as const,
+  // Under the same "items" prefix, so invalidating itemKeys.all after an
+  // edit also refreshes an open item page.
+  detail: (id: string) => ["items", "detail", id] as const,
+  events: (id: string) => ["items", "events", id] as const,
 };
 
 export const salesKeys = {

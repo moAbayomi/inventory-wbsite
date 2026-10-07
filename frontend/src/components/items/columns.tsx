@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Barcode, Trash2 } from "lucide-react";
 import type { InventoryItem } from "../../types/api";
+import { Link } from "react-router-dom";
 import { ItemThumbnail } from "./ItemThumbnail";
 
 // A function instead of a plain array because the actions column needs to
@@ -8,10 +9,10 @@ import { ItemThumbnail } from "./ItemThumbnail";
 // modal, with this row's item) — there's no other way to hand a table
 // cell an onClick without it.
 //
-// `isAdmin` gates the edit and delete buttons. Both are admin-only actions
-// (backend-enforced via adminOnly on PATCH/DELETE /items/:id) — a STAFF
-// account would just get a 403 if it clicked through. Printing a barcode
-// label isn't a write at all, so every role gets that one.
+// `isAdmin` gates every action button: edit and delete (backend-enforced via
+// adminOnly on PATCH/DELETE /items/:id, so a STAFF account would just get a
+// 403), and printing labels, which is part of receiving stock -- the
+// owner's job, not the cashier's.
 //
 // onPrintLabel/onDelete are optional -- CategoryItemsPage originally called
 // this table without a print handler at all (a pre-existing gap, not
@@ -31,7 +32,15 @@ export function createItemColumns(
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <ItemThumbnail url={row.original.image_url} alt={row.original.name} />
-          <span>{row.original.name}</span>
+          {/* A real link too, so the page can be opened in a new tab and
+              reached with the keyboard -- not just by clicking the row. */}
+          <Link
+            to={`/inventory/${row.original.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="hover:underline"
+          >
+            {row.original.name}
+          </Link>
         </div>
       ),
     },
@@ -59,8 +68,14 @@ export function createItemColumns(
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-1">
-          {onPrintLabel && (
+        // Stop clicks here reaching the row, which would open the item page.
+        <div
+          className="flex items-center justify-end gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Admin only, like edit/delete -- printing labels is part of
+              receiving stock, which is the owner's job. */}
+          {isAdmin && onPrintLabel && (
             <button
               type="button"
               aria-label={`Print barcode label for ${row.original.name}`}

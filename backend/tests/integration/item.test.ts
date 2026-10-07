@@ -7,9 +7,13 @@ describe("Item endpoints", () => {
 
   let authToken: string;
 
+  // Item writes are admin only; staffToken checks that they're refused.
+  let staffToken: string;
+
   beforeAll(async () => {
-    const { token } = await createTestUser()
+    const { token } = await createTestUser({ role: "ADMIN" as const })
     authToken = token
+    staffToken = (await createTestUser()).token
   })
 
   afterEach( async () => {
@@ -178,6 +182,19 @@ describe("Item endpoints", () => {
     })
   })
 
+  describe("staff permissions", () => {
+    it("should let staff view items but not create, edit or delete them", async () => {
+      const item = await createTestItem()
+
+      await request(app).get(`/api/v1/items/${item.id}`).set("Authorization", `Bearer ${staffToken}`).expect(200)
+      await request(app).post("/api/v1/items").set("Authorization", `Bearer ${staffToken}`)
+        .send({ name: "Nope", cost_price: 1, selling_price: 2 }).expect(403)
+      await request(app).patch(`/api/v1/items/${item.id}`).set("Authorization", `Bearer ${staffToken}`)
+        .send({ name: "Renamed" }).expect(403)
+      await request(app).delete(`/api/v1/items/${item.id}`).set("Authorization", `Bearer ${staffToken}`).expect(403)
+    })
+  })
+
   describe("PATCH /api/v1/items/:id", () => {
     it("should update editable details of the item", async () => {
       const item = await createTestItem()
@@ -255,7 +272,7 @@ describe("Item endpoints", () => {
 
       await request(app)
         .post(`/api/v1/items/${item.id}/adjust`)
-        .set("Authorization", `Bearer ${authToken}`)
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ quantity: 5, type: "RESTOCK" })
         .expect(403)
     })
