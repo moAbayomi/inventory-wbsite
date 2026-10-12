@@ -1,7 +1,10 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Ban, Printer } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowLeft, Ban, Printer, Share2, Loader2 } from "lucide-react";
 import { SectionSpinner } from "../components/Spinner";
 import { useSaleDetail } from "../hooks/useSales";
+import { jsPDF } from "jspdf";
+import { toCanvas } from "html-to-image";
 
 const STORE_PHONE = "+2348037189544";
 const STORE_ADDRESS =
@@ -10,6 +13,8 @@ const STORE_ADDRESS =
 export default function SaleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, isError } = useSaleDetail(id);
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [sharing, setSharing] = useState(false);
 
   if (isLoading) return <SectionSpinner />;
   if (isError || !data) {
@@ -23,34 +28,115 @@ export default function SaleDetailPage() {
 
   const { sale, items, payments } = data;
 
+  function formatNigerianNumber(phone: string) {
+    let p = phone.replace(/\D/g, "");
+    if (p.startsWith("0")) p = "234" + p.slice(1);
+    return p;
+  }
+
+  async function buildReceiptPdf(): Promise<Blob> {
+    const node = receiptRef.current!;
+    await document.fonts.ready; // make sure Manrope/Fraunces are loaded
+
+    const canvas = await toCanvas(node, {
+      pixelRatio: 3, // sharp text
+      backgroundColor: "#ffffff",
+      style: { border: "none", borderRadius: "0", margin: "0" },
+    });
+
+    const W = 80; // mm, matches your thermal slip width
+    const H = (canvas.height / canvas.width) * W;
+    const doc = new jsPDF({ unit: "mm", format: [W, H] });
+    doc.addImage(
+      canvas.toDataURL("image/jpeg", 0.85),
+      "JPEG",
+      0,
+      0,
+      W,
+      H,
+      undefined,
+      "FAST",
+    );
+    return doc.output("blob");
+  }
+
+  async function sendReceiptPdf() {
+    if (sharing) return; // ignore double taps
+    setSharing(true);
+    try {
+      const blob = await buildReceiptPdf();
+      const file = new File([blob], `receipt-${sale.id}.pdf`, {
+        type: "application/pdf",
+      });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        // Files only: no text/title/url, to avoid duplicates in WhatsApp
+        await navigator.share({ files: [file] });
+        return;
+      }
+
+      // Fallback: download the PDF, then open the customer's chat
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      if (sale.customer_phone) {
+        window.open(
+          `https://wa.me/${formatNigerianNumber(sale.customer_phone)}`,
+          "_blank",
+        );
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") console.error(err);
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
           to="/sales"
-          className="flex items-center gap-1 text-xs font-medium text-[#1C1C1A]/50 hover:text-[#1C1C1A]"
+          className="flex w-fit items-center gap-1.5 text-xs font-medium text-[#1C1C1A]/50 transition-colors hover:text-[#1C1C1A]"
         >
-          <ArrowLeft size={12} />
+          <ArrowLeft size={14} />
           Sales history
         </Link>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="flex items-center gap-2 rounded-md bg-[#17171A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#17171A]/85"
-        >
-          <Printer size={16} />
-          Print receipt
-        </button>
+
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2.5 text-sm font-medium text-[#17171A] transition-colors hover:bg-black/[0.03] active:scale-[0.98]"
+          >
+            <Printer size={16} />
+            Print
+          </button>
+
+          <button
+            type="button"
+            onClick={sendReceiptPdf}
+            disabled={sharing}
+            className="flex items-center justify-center gap-2 rounded-lg bg-[#17171A] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#17171A]/85 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {sharing ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Share2 size={16} />
+            )}
+            {sharing ? "Preparing..." : "Share"}
+          </button>
+        </div>
       </div>
 
-      {/* Only this card stays visible once the print stylesheet in
-          index.css kicks in -- everything else on the page (nav, the print
-          button itself) gets hidden. The "receipt" named page there sizes
-          the print job to an 80mm thermal-printer slip instead of a full
-          sheet, for shops printing off a small handheld/POS receipt
-          printer -- browsers that don't support named pages just fall back
-          to their default page size. */}
-      <div className="printable-receipt mx-auto w-full max-w-md rounded-lg border border-black/5 bg-white p-6">
+      <div
+        ref={receiptRef}
+        className="printable-receipt mx-auto w-full max-w-md rounded-lg border border-black/5 bg-white p-6"
+      >
         <div className="mb-5 flex flex-col items-center gap-1.5 border-b border-dashed border-black/10 pb-5 text-center">
           <img
             src="/logo.jpg"
@@ -104,8 +190,8 @@ export default function SaleDetailPage() {
                 <p className="text-[#1C1C1A]">{line.item_name ?? "Item"}</p>
                 <p className="text-xs text-[#1C1C1A]/45">
                   {line.item_sku ? `${line.item_sku} · ` : ""}
-                  {Number(line.quantity).toLocaleString()} ×{" "}
-                  ₦{Number(line.price_per_unit).toLocaleString()}
+                  {Number(line.quantity).toLocaleString()} × ₦
+                  {Number(line.price_per_unit).toLocaleString()}
                 </p>
               </div>
               <span className="font-medium text-[#1C1C1A]">
