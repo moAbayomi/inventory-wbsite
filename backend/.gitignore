@@ -1,3 +1,10 @@
 node_modules
 .env
 api-surface.txt
+backend/env.js
+backend/env.js.map
+backend/env.d.ts
+backend/env.d.ts.map
+backend/.DS_Store
+dist
+

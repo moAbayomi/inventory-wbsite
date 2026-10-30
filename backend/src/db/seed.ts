@@ -53,9 +53,9 @@ async function seedShop() {
   // editing this file every time, e.g.:
   //   SEED_ADMIN_EMAIL=admin@abbysrobe.com SEED_ADMIN_PASSWORD=... npm run db:seed
   const ownerEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@abbysrobe.com";
-  const ownerPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin1234";
-  const staffEmail = process.env.SEED_STAFF_EMAIL ?? "chidi@abbysrobe.com";
-  const staffPassword = process.env.SEED_STAFF_PASSWORD ?? "staff1234";
+  const ownerPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin1234.";
+  //const staffEmail = process.env.SEED_STAFF_EMAIL ?? "chidi@abbysrobe.com";
+  //const staffPassword = process.env.SEED_STAFF_PASSWORD ?? "staff1234";
 
   const [owner] = await db
     .insert(users)
@@ -67,22 +67,22 @@ async function seedShop() {
     })
     .returning();
 
-  const [staff] = await db
-    .insert(users)
-    .values({
-      name: "Chidi Umeh",
-      email: staffEmail,
-      password_hash: await hashPassword(staffPassword),
-      role: "STAFF",
-    })
-    .returning();
+  // const [staff] = await db
+  //  .insert(users)
+  //  .values({
+  //    name: "Chidi Umeh",
+  //    email: staffEmail,
+  //    password_hash: await hashPassword(staffPassword),
+  //    role: "STAFF",
+  //  })
+  //  .returning();
 
-  if (!owner || !staff) throw new Error("failed to seed users");
-  console.log(`👤 Seeded users: ${owner.name} (ADMIN), ${staff.name} (STAFF)`);
+  if (!owner) throw new Error("failed to seed users");
+  console.log(`👤 Seeded users: ${owner.name} (ADMIN)`);
   console.log(`   login: ${ownerEmail} / ${ownerPassword}`);
-  console.log(`   login: ${staffEmail} / ${staffPassword}`);
+  //console.log(`   login: ${staffEmail} / ${staffPassword}`);
 
-  const categoryRows = await db
+  /* const categoryRows = await db
     .insert(categories)
     .values([
       { name: "Ankara & African Print" },
@@ -532,8 +532,8 @@ async function seedShop() {
   console.log("🧾 Seeded 3 sample sales, their payments, and SALE events.");
   console.log("✨ Abby's Robe database fully operational!");
   process.exit(0);
+} */
 }
-
 seedShop().catch((err) => {
   console.error("❌ Seeding failed:", err);
   process.exit(1);

@@ -2,7 +2,7 @@ import type { Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.ts";
 import db from "../db/db.ts";
 import { eq, sql } from "drizzle-orm";
-import { inventoryEvents, items, categories } from "../db/schema.ts";
+import { inventoryEvents, items, categories, salesItems } from "../db/schema.ts";
 import { Decimal } from "decimal.js";
 import type {
   ItemIdParam,
@@ -22,6 +22,7 @@ import {
   notFound,
   unauthorized,
   badRequest,
+  conflict,
   serviceUnavailable,
 } from "../utils/httpError.ts";
 
@@ -322,6 +323,24 @@ export const deleteItem = async function (
         .limit(1);
       if (!currentItem) throw notFound("Item not found");
 
+      // sales_items.item_id is ON DELETE RESTRICT on purpose: a sale's lines
+      // are the receipt. Deleting an item that has ever been sold would
+      // either fail at the database (that used to surface as a bare 500 with
+      // a "violates RESTRICT setting of foreign key" trace) or, if the
+      // constraint were relaxed, quietly corrupt past sales and their
+      // totals. Refusing with an explanation is the truthful answer.
+      const [soldLine] = await tx
+        .select({ id: salesItems.id })
+        .from(salesItems)
+        .where(eq(salesItems.item_id, id))
+        .limit(1);
+
+      if (soldLine)
+        throw conflict(
+          "This item has sales recorded against it, so it can't be deleted — " +
+            "those receipts and totals would stop adding up. Set its stock to 0 instead.",
+        );
+
       const event: typeof inventoryEvents.$inferInsert = {
         item_id: currentItem.id,
         user_id: userId as string,
@@ -348,6 +367,18 @@ export const deleteItem = async function (
       .status(200)
       .json({ message: "item successfully deleted", item: deletedItem });
   } catch (e) {
+    // Belt and braces for the race the pre-check can't cover: a sale could be
+    // recorded between the SELECT and the DELETE. Same answer either way --
+    // 409 with the reason, rather than a 500 with a Postgres trace.
+    const pgCode = (e as { cause?: { code?: string } })?.cause?.code;
+    if (pgCode === "23001") {
+      return next(
+        conflict(
+          "This item has sales recorded against it, so it can't be deleted — " +
+            "those receipts and totals would stop adding up. Set its stock to 0 instead.",
+        ),
+      );
+    }
     next(e);
   }
 };

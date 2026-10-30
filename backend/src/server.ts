@@ -14,7 +14,7 @@ import categoriesRoutes from "./routes/categoriesRoutes.ts";
 import errorHandler from "./middleware/errorHandler.ts";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger.ts";
-import { getAllowedOrigins } from "../env.ts";
+import { getAllowedOrigins } from "./env.ts";
 
 const app = express();
 
@@ -24,10 +24,10 @@ const app = express();
 // origins. ALLOWED_ORIGINS is read from env (see env.ts) so it can differ
 // between dev/test/production without a code change.
 app.use(
-  cors({
-    origin: getAllowedOrigins(),
-    credentials: true,
-  }),
+	cors({
+		origin: getAllowedOrigins(),
+		credentials: true,
+	}),
 );
 app.use(cookieParser());
 app.use(helmet());

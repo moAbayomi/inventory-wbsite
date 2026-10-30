@@ -1,5 +1,5 @@
 import { SignJWT, type JWTPayload, jwtVerify } from "jose";
-import { env } from "../../env.ts";
+import { env } from "../env.ts";
 import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 
@@ -23,7 +23,6 @@ export async function generateAccessToken(
 export function generateRefreshToken(): string {
 	return crypto.randomBytes(32).toString("hex");
 }
-
 
 export function generateRandomToken(): string {
 	return crypto.randomBytes(48).toString("hex");
