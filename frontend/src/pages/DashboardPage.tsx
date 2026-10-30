@@ -10,7 +10,35 @@ import { RevenueChart } from "../components/Dashboard/RevenueChart";
 import { LogStockUpdateForm } from "../components/form/LogStockUpdateForm";
 import { RoleGate } from "../components/RoleGate";
 import type { SalesRange } from "../api/sales";
-import { AlertTriangle, Package, BadgeDollarSign, Plus, ArrowRight, Ban } from "lucide-react";
+import type {
+  InventoryTotals,
+  LowStockResponse,
+  SalesSummary,
+  SalesTimeseries,
+} from "../types/api";
+import { AlertTriangle, Package, BadgeDollarSign, Plus, ArrowRight } from "lucide-react";
+
+// A brand new database is not an error: every endpoint answers 200 with
+// zeroed totals and empty lists. Those payloads render fine (the tiles show
+// 0/₦0 and the chart shows its empty state), so the only reason to show the
+// whole-page failure notice is a request that actually failed. These
+// placeholders stand in for the brief window before the first response
+// lands, so a slow endpoint can't blank the dashboard either.
+const EMPTY_TOTALS: InventoryTotals = {
+  item_count: 0,
+  total_stock_value: "0",
+  total_retail_value: "0",
+  out_of_stock_count: 0,
+  potential_profit: "0",
+};
+
+const EMPTY_LOW_STOCK: LowStockResponse = { items: [], count: 0 };
+
+const EMPTY_SALES_SUMMARY: SalesSummary = {
+  range: { from: null, to: null },
+  totals: { revenue: "0", profit: "0", sale_count: 0, average_sale: "0.00" },
+  by_payment_method: [],
+};
 
 const RANGE_OPTIONS: { value: SalesRange; label: string }[] = [
   { value: "today", label: "Today" },
@@ -32,32 +60,43 @@ export default function DashboardPage() {
   const { totals, lowStock, salesSummary, timeseries, isLoading, isError } =
     useDashboard(range);
 
+  // Bucket has to follow the selected range even before the first response,
+  // or the chart's x-axis labels would be wrong for the empty state.
+  const emptyTimeseries: SalesTimeseries = {
+    range: { from: "", to: "" },
+    bucket: range === "today" ? "hour" : "day",
+    points: [],
+  };
+
   if (isLoading) return <SectionSpinner />;
-  if (isError || !totals || !lowStock || !salesSummary || !timeseries) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 py-16 text-[#1C1C1A]/50">
-        <Ban size={20} />
-        <p className="text-sm">Couldn't load the dashboard. Try refreshing.</p>
-      </div>
-    );
-  }
+
+  const inventory = totals ?? EMPTY_TOTALS;
+  const restocking = lowStock ?? EMPTY_LOW_STOCK;
+  const summary = salesSummary ?? EMPTY_SALES_SUMMARY;
+  const series = timeseries ?? emptyTimeseries;
 
   const stats = [
-    { label: "Items tracked", value: totals.item_count, icon: Package },
+    { label: "Items tracked", value: inventory.item_count, icon: Package },
     {
       label: "Needs restocking",
-      value: lowStock.count,
+      value: restocking.count,
       icon: AlertTriangle,
     },
     {
       label: RANGE_TILE_LABEL[range],
-      value: `₦${Number(salesSummary.totals.revenue).toLocaleString()}`,
+      value: `₦${Number(summary.totals.revenue).toLocaleString()}`,
       icon: BadgeDollarSign,
     },
   ];
 
   return (
     <div className="flex flex-col gap-8">
+      {isError && (
+        <p className="rounded-md border border-[#C9A24B]/30 bg-[#C9A24B]/10 px-4 py-2 text-xs text-[#1C1C1A]/70">
+          Some figures couldn't be loaded — showing what's available. Refresh
+          to try again.
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-medium tracking-tight text-[#1C1C1A]">
@@ -125,7 +164,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="px-5 py-4">
-          <RevenueChart points={timeseries.points} bucket={timeseries.bucket} />
+          <RevenueChart points={series.points} bucket={series.bucket} />
         </div>
       </section>
 
@@ -142,13 +181,13 @@ export default function DashboardPage() {
             <ArrowRight size={12} />
           </a>
         </div>
-        {lowStock.items.length === 0 ? (
+        {restocking.items.length === 0 ? (
           <p className="px-5 py-6 text-sm text-[#1C1C1A]/45">
             Nothing below its threshold right now.
           </p>
         ) : (
           <ul className="divide-y divide-black/5">
-            {lowStock.items.map((item) => (
+            {restocking.items.map((item) => (
               <li
                 key={item.id}
                 className="flex items-center justify-between px-5 py-3"
