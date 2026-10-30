@@ -23,7 +23,7 @@ export default function InventoryPage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 py-16 text-[#1C1C1A]/50">
         <Ban size={20} />
-        <p className="text-sm">Couldn't load the dashboard. Try refreshing.</p>
+        <p className="text-sm">Couldn't load inventory. Try refreshing.</p>
       </div>
     );
   }

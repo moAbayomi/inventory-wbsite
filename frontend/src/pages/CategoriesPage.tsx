@@ -15,7 +15,7 @@ export default function CategoriesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const navigate = useNavigate();
-  const { categories, count, isLoading, isError, removeCategory } = useCategory();
+  const { categories, isLoading, isError, removeCategory } = useCategory();
   const { data: items } = useItems();
 
   // How many items actually sit in each category -- the card used to show
@@ -31,11 +31,15 @@ export default function CategoriesPage() {
   }, [items]);
 
   if (isLoading) return <SectionSpinner />;
-  if (isError || !count || !categories) {
+  // `!count` used to sit in this condition, but count is a *number*: on a
+  // fresh database it is a perfectly valid 0, which is falsy -- so an empty
+  // Categories page rendered the error state instead of the empty state.
+  // Only a missing payload or a failed request means "couldn't load".
+  if (isError || !categories) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 py-16 text-[#1C1C1A]/50">
         <Ban size={20} />
-        <p className="text-sm">Couldn't load the dashboard. Try refreshing.</p>
+        <p className="text-sm">Couldn't load categories. Try refreshing.</p>
       </div>
     );
   }
@@ -47,7 +51,9 @@ export default function CategoriesPage() {
           <h1 className="font-display text-2xl font-medium tracking-tight text-[#1C1C1A]">
             Categories
           </h1>
-          <p className="text-sm text-[#1C1C1A]/50">{count} categories</p>
+          <p className="text-sm text-[#1C1C1A]/50">
+            {categories.length} {categories.length === 1 ? "category" : "categories"}
+          </p>
         </div>
         <RoleGate role="ADMIN">
           <button
@@ -61,6 +67,11 @@ export default function CategoriesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {categories.length === 0 && (
+          <p className="col-span-full rounded-lg border border-black/5 bg-white px-5 py-6 text-sm text-[#1C1C1A]/45">
+            No categories yet. Add one to start grouping your items.
+          </p>
+        )}
         {categories.map((cat) => (
           <div
             key={cat.id}
